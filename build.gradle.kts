@@ -31,6 +31,9 @@ dependencies {
     // kotlinx.serialization for JSONL parsing
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
+    // kotlinx-datetime for type-safe date/time handling
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.0")
+
     // Test dependencies
     testImplementation(kotlin("test"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.1")
