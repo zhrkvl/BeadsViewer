@@ -10,6 +10,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.intellij.openapi.project.Project
 import me.zkvl.beadsviewer.model.Issue
+import me.zkvl.beadsviewer.query.service.QueryFilterService
 import me.zkvl.beadsviewer.service.IssueService
 import me.zkvl.beadsviewer.ui.components.IssueCard
 import org.jetbrains.jewel.ui.component.Text
@@ -17,16 +18,29 @@ import org.jetbrains.jewel.ui.component.Text
 /**
  * Traditional list view that displays all issues in a scrollable list.
  * This is the default view, refactored from the original IssueListView.
+ * Now supports query filtering with complementary filtering pattern.
  */
 @Composable
 fun ListView(project: Project) {
     val issueService = remember { IssueService.getInstance(project) }
-    val issuesState by issueService.issuesState.collectAsState()
+    val queryFilterService = remember { QueryFilterService.getInstance(project) }
 
-    val issues = when (val state = issuesState) {
-        is IssueService.IssuesState.Loaded -> state.issues.sortedBy { it.priority }
+    val issuesState by issueService.issuesState.collectAsState()
+    val filteredState by queryFilterService.filteredState.collectAsState()
+
+    // Determine base issues: filtered or all
+    val baseIssues = when {
+        filteredState is QueryFilterService.FilteredIssuesState.Filtered ->
+            (filteredState as QueryFilterService.FilteredIssuesState.Filtered).issues
+        filteredState is QueryFilterService.FilteredIssuesState.Error ->
+            emptyList()
+        issuesState is IssueService.IssuesState.Loaded ->
+            (issuesState as IssueService.IssuesState.Loaded).issues
         else -> emptyList()
     }
+
+    // Apply view-specific sorting (ListView sorts by priority)
+    val issues = baseIssues.sortedBy { it.priority }
 
     Column(modifier = Modifier.fillMaxSize()) {
         when (val state = issuesState) {
