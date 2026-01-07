@@ -11,10 +11,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.intellij.openapi.project.Project
 import me.zkvl.beadsviewer.model.Issue
-import me.zkvl.beadsviewer.parser.IssueRepository
+import me.zkvl.beadsviewer.service.IssueService
 import me.zkvl.beadsviewer.ui.components.IssueCard
 import org.jetbrains.jewel.ui.component.Text
-import java.nio.file.Paths
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
@@ -24,49 +23,53 @@ import kotlinx.datetime.toLocalDateTime
  */
 @Composable
 fun HistoryView(project: Project) {
-    var issues by remember { mutableStateOf<List<Issue>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
+    val issueService = remember { IssueService.getInstance(project) }
+    val issuesState by issueService.issuesState.collectAsState()
 
-    LaunchedEffect(project) {
-        val beadsFile = Paths.get(project.basePath ?: return@LaunchedEffect, ".beads", "issues.jsonl")
-        IssueRepository().loadIssues(beadsFile)
-            .onSuccess { issues = it; isLoading = false }
-            .onFailure { isLoading = false }
-    }
-
-    if (isLoading) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Loading history...")
+    when (val state = issuesState) {
+        is IssueService.IssuesState.Loading -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Loading history...")
+            }
+            return
         }
-        return
-    }
+        is IssueService.IssuesState.Error -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(state.message)
+            }
+            return
+        }
+        is IssueService.IssuesState.Loaded -> {
+            val issues = state.issues
 
-    // Sort by created date (most recent first)
-    val sortedIssues = issues.sortedByDescending { it.createdAt }
+            // Sort by created date (most recent first)
+            val sortedIssues = issues.sortedByDescending { it.createdAt }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text(
-            "Issue History",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+            Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                Text(
+                    "Issue History",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
 
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            items(items = sortedIssues, key = { it.id }) { issue ->
-                Column {
-                    val localDateTime = issue.createdAt.toLocalDateTime(TimeZone.currentSystemDefault())
-                    val dateString = "${localDateTime.month.name.take(3)} ${localDateTime.dayOfMonth}, ${localDateTime.year}"
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(items = sortedIssues, key = { it.id }) { issue ->
+                        Column {
+                            val localDateTime = issue.createdAt.toLocalDateTime(TimeZone.currentSystemDefault())
+                            val dateString = "${localDateTime.month.name.take(3)} ${localDateTime.dayOfMonth}, ${localDateTime.year}"
 
-                    Text(
-                        dateString,
-                        fontSize = 11.sp,
-                        color = androidx.compose.ui.graphics.Color(0xFF888888),
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
-                    IssueCard(issue = issue, expandable = true)
+                            Text(
+                                dateString,
+                                fontSize = 11.sp,
+                                color = androidx.compose.ui.graphics.Color(0xFF888888),
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            )
+                            IssueCard(issue = issue, expandable = true)
+                        }
+                    }
                 }
             }
         }

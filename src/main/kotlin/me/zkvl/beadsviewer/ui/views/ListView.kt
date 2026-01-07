@@ -10,10 +10,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.intellij.openapi.project.Project
 import me.zkvl.beadsviewer.model.Issue
-import me.zkvl.beadsviewer.parser.IssueRepository
+import me.zkvl.beadsviewer.service.IssueService
 import me.zkvl.beadsviewer.ui.components.IssueCard
 import org.jetbrains.jewel.ui.component.Text
-import java.nio.file.Paths
 
 /**
  * Traditional list view that displays all issues in a scrollable list.
@@ -21,36 +20,17 @@ import java.nio.file.Paths
  */
 @Composable
 fun ListView(project: Project) {
-    var issues by remember { mutableStateOf<List<Issue>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val issueService = remember { IssueService.getInstance(project) }
+    val issuesState by issueService.issuesState.collectAsState()
 
-    // Load issues on composition
-    LaunchedEffect(project) {
-        val beadsFile = Paths.get(project.basePath ?: return@LaunchedEffect, ".beads", "issues.jsonl")
-        val repository = IssueRepository()
-
-        repository.loadIssues(beadsFile)
-            .onSuccess { loadedIssues ->
-                issues = loadedIssues.sortedBy { it.priority }
-                isLoading = false
-            }
-            .onFailure { error ->
-                errorMessage = "Failed to load issues: ${error.message}"
-                isLoading = false
-            }
+    val issues = when (val state = issuesState) {
+        is IssueService.IssuesState.Loaded -> state.issues.sortedBy { it.priority }
+        else -> emptyList()
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Header
-        Text(
-            "Beads Issues (${issues.size})",
-            modifier = Modifier.padding(16.dp),
-            fontSize = 16.sp
-        )
-
-        when {
-            isLoading -> {
+        when (val state = issuesState) {
+            is IssueService.IssuesState.Loading -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -58,30 +38,38 @@ fun ListView(project: Project) {
                     Text("Loading issues...")
                 }
             }
-            errorMessage != null -> {
+            is IssueService.IssuesState.Error -> {
                 Box(
                     modifier = Modifier.fillMaxSize().padding(16.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(errorMessage ?: "Unknown error")
+                    Text(state.message)
                 }
             }
-            issues.isEmpty() -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("No issues found in .beads/issues.jsonl")
-                }
-            }
-            else -> {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(items = issues, key = { it.id }) { issue ->
-                        IssueCard(issue = issue)
+            is IssueService.IssuesState.Loaded -> {
+                if (issues.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("No issues found in .beads/issues.jsonl")
+                    }
+                } else {
+                    // Header
+                    Text(
+                        "Beads Issues (${issues.size})",
+                        modifier = Modifier.padding(16.dp),
+                        fontSize = 16.sp
+                    )
+
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(items = issues, key = { it.id }) { issue ->
+                            IssueCard(issue = issue)
+                        }
                     }
                 }
             }

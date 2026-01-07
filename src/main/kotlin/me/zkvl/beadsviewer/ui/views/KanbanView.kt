@@ -16,10 +16,9 @@ import androidx.compose.ui.unit.sp
 import com.intellij.openapi.project.Project
 import me.zkvl.beadsviewer.model.Issue
 import me.zkvl.beadsviewer.model.Status
-import me.zkvl.beadsviewer.parser.IssueRepository
+import me.zkvl.beadsviewer.service.IssueService
 import me.zkvl.beadsviewer.ui.components.IssueCard
 import org.jetbrains.jewel.ui.component.Text
-import java.nio.file.Paths
 
 /**
  * Kanban board view with columns for each status.
@@ -27,48 +26,52 @@ import java.nio.file.Paths
  */
 @Composable
 fun KanbanView(project: Project) {
-    var issues by remember { mutableStateOf<List<Issue>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
+    val issueService = remember { IssueService.getInstance(project) }
+    val issuesState by issueService.issuesState.collectAsState()
 
-    LaunchedEffect(project) {
-        val beadsFile = Paths.get(project.basePath ?: return@LaunchedEffect, ".beads", "issues.jsonl")
-        IssueRepository().loadIssues(beadsFile)
-            .onSuccess { issues = it; isLoading = false }
-            .onFailure { isLoading = false }
-    }
-
-    if (isLoading) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Loading kanban board...")
+    when (val state = issuesState) {
+        is IssueService.IssuesState.Loading -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Loading kanban board...")
+            }
+            return
         }
-        return
-    }
+        is IssueService.IssuesState.Error -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(state.message)
+            }
+            return
+        }
+        is IssueService.IssuesState.Loaded -> {
+            val issues = state.issues
 
-    // Group issues by status
-    val issuesByStatus = issues
-        .filter { it.status != Status.TOMBSTONE } // Exclude tombstones
-        .groupBy { it.status }
+            // Group issues by status
+            val issuesByStatus = issues
+                .filter { it.status != Status.TOMBSTONE } // Exclude tombstones
+                .groupBy { it.status }
 
-    Row(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Display columns for relevant statuses
-        listOf(
-            Status.OPEN,
-            Status.IN_PROGRESS,
-            Status.BLOCKED,
-            Status.HOOKED,
-            Status.CLOSED
-        ).forEach { status ->
-            KanbanColumn(
-                status = status,
-                issues = issuesByStatus[status] ?: emptyList(),
-                modifier = Modifier.width(300.dp)
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Display columns for relevant statuses
+                listOf(
+                    Status.OPEN,
+                    Status.IN_PROGRESS,
+                    Status.BLOCKED,
+                    Status.HOOKED,
+                    Status.CLOSED
+                ).forEach { status ->
+                    KanbanColumn(
+                        status = status,
+                        issues = issuesByStatus[status] ?: emptyList(),
+                        modifier = Modifier.width(300.dp)
+                    )
+                }
+            }
         }
     }
 }

@@ -15,9 +15,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.intellij.openapi.project.Project
 import me.zkvl.beadsviewer.model.Issue
-import me.zkvl.beadsviewer.parser.IssueRepository
+import me.zkvl.beadsviewer.service.IssueService
 import org.jetbrains.jewel.ui.component.Text
-import java.nio.file.Paths
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -27,46 +26,47 @@ import kotlin.math.sin
  */
 @Composable
 fun GraphView(project: Project) {
-    var issues by remember { mutableStateOf<List<Issue>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
+    val issueService = remember { IssueService.getInstance(project) }
+    val issuesState by issueService.issuesState.collectAsState()
 
-    LaunchedEffect(project) {
-        val beadsFile = Paths.get(project.basePath ?: return@LaunchedEffect, ".beads", "issues.jsonl")
-        IssueRepository().loadIssues(beadsFile)
-            .onSuccess {
-                // Filter to issues with dependencies for clearer graph
-                issues = it.filter { issue -> issue.dependencies.isNotEmpty() }
-                isLoading = false
-            }
-            .onFailure { isLoading = false }
-    }
-
-    if (isLoading) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Loading dependency graph...")
-        }
-        return
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState())
-    ) {
-        Text(
-            "Dependency Graph (${issues.size} issues with dependencies)",
-            fontSize = 16.sp,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
-        if (issues.isEmpty()) {
+    when (val state = issuesState) {
+        is IssueService.IssuesState.Loading -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No issues with dependencies found")
+                Text("Loading dependency graph...")
             }
-        } else {
-            // Simple circular graph layout
-            DependencyGraphCanvas(issues)
+            return
+        }
+        is IssueService.IssuesState.Error -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(state.message)
+            }
+            return
+        }
+        is IssueService.IssuesState.Loaded -> {
+            // Filter to issues with dependencies for clearer graph
+            val issues = state.issues.filter { issue -> issue.dependencies.isNotEmpty() }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Text(
+                    "Dependency Graph (${issues.size} issues with dependencies)",
+                    fontSize = 16.sp,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                if (issues.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("No issues with dependencies found")
+                    }
+                } else {
+                    // Simple circular graph layout
+                    DependencyGraphCanvas(issues)
+                }
+            }
         }
     }
 }

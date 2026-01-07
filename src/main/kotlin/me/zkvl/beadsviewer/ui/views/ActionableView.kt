@@ -13,10 +13,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.intellij.openapi.project.Project
 import me.zkvl.beadsviewer.model.Issue
-import me.zkvl.beadsviewer.parser.IssueRepository
+import me.zkvl.beadsviewer.service.IssueService
 import me.zkvl.beadsviewer.ui.components.IssueCard
 import org.jetbrains.jewel.ui.component.Text
-import java.nio.file.Paths
 
 /**
  * Actionable view that groups issues by tracks and labels.
@@ -24,53 +23,57 @@ import java.nio.file.Paths
  */
 @Composable
 fun ActionableView(project: Project) {
-    var issues by remember { mutableStateOf<List<Issue>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
+    val issueService = remember { IssueService.getInstance(project) }
+    val issuesState by issueService.issuesState.collectAsState()
 
-    LaunchedEffect(project) {
-        val beadsFile = Paths.get(project.basePath ?: return@LaunchedEffect, ".beads", "issues.jsonl")
-        IssueRepository().loadIssues(beadsFile)
-            .onSuccess { issues = it; isLoading = false }
-            .onFailure { isLoading = false }
-    }
-
-    if (isLoading) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Loading actionable issues...")
+    when (val state = issuesState) {
+        is IssueService.IssuesState.Loading -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Loading actionable issues...")
+            }
+            return
         }
-        return
-    }
-
-    // Group by labels (tracks)
-    val issuesByLabel = issues
-        .filter { it.labels.isNotEmpty() }
-        .flatMap { issue -> issue.labels.map { label -> label to issue } }
-        .groupBy({ it.first }, { it.second })
-
-    val unlabeled = issues.filter { it.labels.isEmpty() }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState())
-    ) {
-        Text(
-            "Actionable Issues by Track",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
-        // Display each track/label group
-        issuesByLabel.forEach { (label, issuesInTrack) ->
-            TrackSection(label, issuesInTrack)
-            Spacer(modifier = Modifier.height(16.dp))
+        is IssueService.IssuesState.Error -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(state.message)
+            }
+            return
         }
+        is IssueService.IssuesState.Loaded -> {
+            val issues = state.issues
 
-        // Unlabeled issues
-        if (unlabeled.isNotEmpty()) {
-            TrackSection("No Label", unlabeled)
+            // Group by labels (tracks)
+            val issuesByLabel = issues
+                .filter { it.labels.isNotEmpty() }
+                .flatMap { issue -> issue.labels.map { label -> label to issue } }
+                .groupBy({ it.first }, { it.second })
+
+            val unlabeled = issues.filter { it.labels.isEmpty() }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Text(
+                    "Actionable Issues by Track",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                // Display each track/label group
+                issuesByLabel.forEach { (label, issuesInTrack) ->
+                    TrackSection(label, issuesInTrack)
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+
+                // Unlabeled issues
+                if (unlabeled.isNotEmpty()) {
+                    TrackSection("No Label", unlabeled)
+                }
+            }
         }
     }
 }

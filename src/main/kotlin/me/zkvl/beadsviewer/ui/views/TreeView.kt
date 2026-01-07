@@ -10,10 +10,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.intellij.openapi.project.Project
 import me.zkvl.beadsviewer.model.Issue
-import me.zkvl.beadsviewer.parser.IssueRepository
+import me.zkvl.beadsviewer.service.IssueService
 import me.zkvl.beadsviewer.ui.components.IssueCard
 import org.jetbrains.jewel.ui.component.Text
-import java.nio.file.Paths
 
 /**
  * Tree view that displays issues in hierarchical structure.
@@ -21,37 +20,41 @@ import java.nio.file.Paths
  */
 @Composable
 fun TreeView(project: Project) {
-    var issues by remember { mutableStateOf<List<Issue>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
+    val issueService = remember { IssueService.getInstance(project) }
+    val issuesState by issueService.issuesState.collectAsState()
 
-    LaunchedEffect(project) {
-        val beadsFile = Paths.get(project.basePath ?: return@LaunchedEffect, ".beads", "issues.jsonl")
-        IssueRepository().loadIssues(beadsFile)
-            .onSuccess { issues = it; isLoading = false }
-            .onFailure { isLoading = false }
-    }
-
-    if (isLoading) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Loading tree view...")
+    when (val state = issuesState) {
+        is IssueService.IssuesState.Loading -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Loading tree view...")
+            }
+            return
         }
-        return
-    }
+        is IssueService.IssuesState.Error -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(state.message)
+            }
+            return
+        }
+        is IssueService.IssuesState.Loaded -> {
+            val issues = state.issues
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text(
-            "Issue Tree",
-            fontSize = 18.sp,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+            Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                Text(
+                    "Issue Tree",
+                    fontSize = 18.sp,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
 
-        // Build tree structure (simplified: just show all issues for now)
-        // TODO: Implement proper parent-child tree structure based on dependencies
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(items = issues, key = { it.id }) { issue ->
-                IssueCard(issue = issue, expandable = true)
+                // Build tree structure (simplified: just show all issues for now)
+                // TODO: Implement proper parent-child tree structure based on dependencies
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(items = issues, key = { it.id }) { issue ->
+                        IssueCard(issue = issue, expandable = true)
+                    }
+                }
             }
         }
     }

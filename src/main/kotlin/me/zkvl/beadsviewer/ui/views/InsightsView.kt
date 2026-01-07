@@ -14,9 +14,8 @@ import androidx.compose.ui.unit.sp
 import com.intellij.openapi.project.Project
 import me.zkvl.beadsviewer.model.Issue
 import me.zkvl.beadsviewer.model.Status
-import me.zkvl.beadsviewer.parser.IssueRepository
+import me.zkvl.beadsviewer.service.IssueService
 import org.jetbrains.jewel.ui.component.Text
-import java.nio.file.Paths
 
 /**
  * Insights dashboard with metrics and analytics.
@@ -24,108 +23,112 @@ import java.nio.file.Paths
  */
 @Composable
 fun InsightsView(project: Project) {
-    var issues by remember { mutableStateOf<List<Issue>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
+    val issueService = remember { IssueService.getInstance(project) }
+    val issuesState by issueService.issuesState.collectAsState()
 
-    LaunchedEffect(project) {
-        val beadsFile = Paths.get(project.basePath ?: return@LaunchedEffect, ".beads", "issues.jsonl")
-        IssueRepository().loadIssues(beadsFile)
-            .onSuccess { issues = it; isLoading = false }
-            .onFailure { isLoading = false }
-    }
-
-    if (isLoading) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Loading insights...")
+    when (val state = issuesState) {
+        is IssueService.IssuesState.Loading -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Loading insights...")
+            }
+            return
         }
-        return
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState())
-    ) {
-        Text(
-            "Project Insights",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
-        // Calculate metrics
-        val metrics = calculateMetrics(issues)
-
-        // Display metric cards in grid
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            MetricCard(
-                title = "Total Issues",
-                value = metrics.totalIssues.toString(),
-                modifier = Modifier.weight(1f)
-            )
-            MetricCard(
-                title = "Open",
-                value = metrics.openIssues.toString(),
-                modifier = Modifier.weight(1f)
-            )
-            MetricCard(
-                title = "In Progress",
-                value = metrics.inProgressIssues.toString(),
-                modifier = Modifier.weight(1f)
-            )
+        is IssueService.IssuesState.Error -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(state.message)
+            }
+            return
         }
+        is IssueService.IssuesState.Loaded -> {
+            val issues = state.issues
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Text(
+                    "Project Insights",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            MetricCard(
-                title = "Closed",
-                value = metrics.closedIssues.toString(),
-                modifier = Modifier.weight(1f)
-            )
-            MetricCard(
-                title = "Blocked",
-                value = metrics.blockedIssues.toString(),
-                modifier = Modifier.weight(1f)
-            )
-            MetricCard(
-                title = "Completion Rate",
-                value = "${metrics.completionRate}%",
-                modifier = Modifier.weight(1f)
-            )
-        }
+                // Calculate metrics
+                val metrics = calculateMetrics(issues)
 
-        Spacer(modifier = Modifier.height(24.dp))
+                // Display metric cards in grid
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    MetricCard(
+                        title = "Total Issues",
+                        value = metrics.totalIssues.toString(),
+                        modifier = Modifier.weight(1f)
+                    )
+                    MetricCard(
+                        title = "Open",
+                        value = metrics.openIssues.toString(),
+                        modifier = Modifier.weight(1f)
+                    )
+                    MetricCard(
+                        title = "In Progress",
+                        value = metrics.inProgressIssues.toString(),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
 
-        // Priority breakdown
-        Text(
-            "Priority Breakdown",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        metrics.byPriority.toSortedMap().forEach { (priority, count) ->
-            PriorityRow(priority, count)
-        }
+                Spacer(modifier = Modifier.height(16.dp))
 
-        Spacer(modifier = Modifier.height(24.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    MetricCard(
+                        title = "Closed",
+                        value = metrics.closedIssues.toString(),
+                        modifier = Modifier.weight(1f)
+                    )
+                    MetricCard(
+                        title = "Blocked",
+                        value = metrics.blockedIssues.toString(),
+                        modifier = Modifier.weight(1f)
+                    )
+                    MetricCard(
+                        title = "Completion Rate",
+                        value = "${metrics.completionRate}%",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
 
-        // Type breakdown
-        Text(
-            "Issue Type Breakdown",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        metrics.byType.forEach { (type, count) ->
-            TypeRow(type, count)
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Priority breakdown
+                Text(
+                    "Priority Breakdown",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                metrics.byPriority.toSortedMap().forEach { (priority, count) ->
+                    PriorityRow(priority, count)
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Type breakdown
+                Text(
+                    "Issue Type Breakdown",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                metrics.byType.forEach { (type, count) ->
+                    TypeRow(type, count)
+                }
+            }
         }
     }
 }

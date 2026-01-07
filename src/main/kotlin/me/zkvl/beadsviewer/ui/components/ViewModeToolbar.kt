@@ -25,44 +25,26 @@ fun ViewModeToolbar(
     onModeChange: (ViewMode) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
+    // Use FlowRow for responsive wrapping when toolbar is narrow
+    FlowRow(
         modifier = modifier
             .fillMaxWidth()
             .background(androidx.compose.ui.graphics.Color(0x08FFFFFF))
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // View mode selector row
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                "View:",
-                fontSize = 12.sp,
-                color = androidx.compose.ui.graphics.Color(0xFF888888)
+        // Display view mode buttons (removed "View:" label and description)
+        ViewMode.entries.forEach { mode ->
+            ViewModeButton(
+                mode = mode,
+                isSelected = mode == currentMode,
+                onClick = {
+                    onModeChange(mode)
+                    ViewModeStateService.getInstance(project).setCurrentViewMode(mode)
+                }
             )
-
-            // Display view mode buttons
-            ViewMode.entries.forEach { mode ->
-                ViewModeButton(
-                    mode = mode,
-                    isSelected = mode == currentMode,
-                    onClick = {
-                        onModeChange(mode)
-                        ViewModeStateService.getInstance(project).setCurrentViewMode(mode)
-                    }
-                )
-            }
         }
-
-        // Current view description
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            currentMode.description,
-            fontSize = 11.sp,
-            color = androidx.compose.ui.graphics.Color(0xFF666666)
-        )
     }
 }
 
@@ -86,12 +68,14 @@ private fun ViewModeButton(
 
     Box(
         modifier = Modifier
+            .widthIn(min = 60.dp) // Fixed minimum width for consistent button size
             .background(
                 color = backgroundColor,
                 shape = RoundedCornerShape(4.dp)
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center
     ) {
         Text(
             mode.displayName,
