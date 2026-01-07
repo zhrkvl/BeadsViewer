@@ -2,5 +2,8 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/references/MeshCoreQt" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/references/beads" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/references/beads_viewer" vcs="Git" />
   </component>
 </project>
