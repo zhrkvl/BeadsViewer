@@ -1,0 +1,9 @@
+[submodule "references/beads"]
+	path = references/beads
+	url = https://github.com/steveyegge/beads.git
+[submodule "references/MeshCoreQt"]
+	path = references/MeshCoreQt
+	url = https://github.com/zhrkvl/MeshCoreQt.git
+[submodule "references/beads_viewer"]
+	path = references/beads_viewer
+	url = https://github.com/Dicklesworthstone/beads_viewer.git
