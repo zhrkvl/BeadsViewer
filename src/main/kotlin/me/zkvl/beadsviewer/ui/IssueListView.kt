@@ -16,79 +16,156 @@ import androidx.compose.ui.unit.sp
 import com.intellij.openapi.project.Project
 import me.zkvl.beadsviewer.model.Issue
 import me.zkvl.beadsviewer.model.IssueType
-import me.zkvl.beadsviewer.parser.IssueRepository
+import me.zkvl.beadsviewer.service.IssueService
 import me.zkvl.beadsviewer.ui.theme.BeadsColors
 import org.jetbrains.jewel.ui.component.Text
-import java.nio.file.Paths
 
 /**
  * Main issue list view that displays all issues from .beads/issues.jsonl.
+ *
+ * This view subscribes to IssueService's StateFlow for reactive updates.
+ * Issues automatically refresh when the file changes externally.
  */
 @Composable
 fun IssueListView(project: Project) {
-    var issues by remember { mutableStateOf<List<Issue>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-
-    // Load issues on composition
-    LaunchedEffect(project) {
-        val beadsFile = Paths.get(project.basePath ?: return@LaunchedEffect, ".beads", "issues.jsonl")
-        val repository = IssueRepository()
-
-        repository.loadIssues(beadsFile)
-            .onSuccess { loadedIssues ->
-                issues = loadedIssues.sortedBy { it.priority }
-                isLoading = false
-            }
-            .onFailure { error ->
-                errorMessage = "Failed to load issues: ${error.message}"
-                isLoading = false
-            }
-    }
+    val issueService = remember { IssueService.getInstance(project) }
+    val issuesState by issueService.issuesState.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Header
+        // Header with stats and refresh button
+        IssueListHeader(
+            issuesState = issuesState,
+            cacheStats = issueService.getCacheStats(),
+            onRefresh = { issueService.refresh() }
+        )
+
+        // Content based on state
+        when (val state = issuesState) {
+            is IssueService.IssuesState.Loading -> {
+                LoadingView()
+            }
+            is IssueService.IssuesState.Error -> {
+                ErrorView(state.message)
+            }
+            is IssueService.IssuesState.Loaded -> {
+                IssueList(state.issues)
+            }
+        }
+    }
+}
+
+@Composable
+private fun IssueListHeader(
+    issuesState: IssueService.IssuesState,
+    cacheStats: IssueService.CacheStatistics,
+    onRefresh: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Title with count
+        val count = (issuesState as? IssueService.IssuesState.Loaded)?.issues?.size ?: 0
         Text(
-            "Beads Issues (${issues.size})",
-            modifier = Modifier.padding(16.dp),
+            "Beads Issues ($count)",
             fontSize = 16.sp
         )
 
-        when {
-            isLoading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("Loading issues...")
-                }
+        // Cache stats and refresh button
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Cache indicator
+            if (cacheStats.isCached) {
+                val ageSeconds = (cacheStats.cacheAgeMs ?: 0) / 1000
+                Text(
+                    "Cached ${ageSeconds}s ago",
+                    fontSize = 11.sp,
+                    color = androidx.compose.ui.graphics.Color(0xFF888888)
+                )
             }
-            errorMessage != null -> {
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(errorMessage ?: "Unknown error")
-                }
+
+            // Refresh button
+            Box(
+                modifier = Modifier
+                    .clickable { onRefresh() }
+                    .background(
+                        color = androidx.compose.ui.graphics.Color(0x08FFFFFF),
+                        shape = RoundedCornerShape(4.dp)
+                    )
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Text("Refresh", fontSize = 12.sp)
             }
-            issues.isEmpty() -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("No issues found in .beads/issues.jsonl")
-                }
-            }
-            else -> {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(items = issues, key = { it.id }) { issue ->
-                        IssueCard(issue)
-                    }
-                }
+        }
+    }
+}
+
+@Composable
+private fun LoadingView() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text("Loading issues...")
+            Text(
+                "Parsing .beads/issues.jsonl",
+                fontSize = 11.sp,
+                color = androidx.compose.ui.graphics.Color(0xFF888888)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ErrorView(message: String) {
+    Box(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                "Error loading issues",
+                fontSize = 14.sp,
+                color = androidx.compose.ui.graphics.Color(0xFFFF5555)
+            )
+            Text(
+                message,
+                fontSize = 12.sp,
+                color = androidx.compose.ui.graphics.Color(0xFF888888)
+            )
+        }
+    }
+}
+
+@Composable
+private fun IssueList(issues: List<Issue>) {
+    if (issues.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("No issues found in .beads/issues.jsonl")
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(items = issues.sortedBy { it.priority }, key = { it.id }) { issue ->
+                IssueCard(issue)
             }
         }
     }

@@ -31,4 +31,10 @@
         <toolWindow id="BeadsExplorer" factoryClass="me.zkvl.beadsviewer.BeadsToolWindowFactory"
                     icon="AllIcons.Toolwindows.ToolWindowPalette"/>
     </extensions>
+
+    <!-- Project-level file listener for .beads/issues.jsonl -->
+    <projectListeners>
+        <listener class="me.zkvl.beadsviewer.service.FileWatcherService"
+                  topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
+    </projectListeners>
 </idea-plugin>
