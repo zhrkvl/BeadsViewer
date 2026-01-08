@@ -311,7 +311,9 @@ class ParserTest {
 
     @Test
     fun `test unexpected token after query`() {
-        val tokens = Lexer("status:open extra").tokenize().getOrThrow()
+        // "status:open extra" is actually VALID (implicit AND with text search)
+        // Test a truly invalid scenario: token after sort clause
+        val tokens = Lexer("status:open sort by: priority asc extra").tokenize().getOrThrow()
         val result = Parser(tokens).parse()
         assertTrue(result.isFailure)
         val error = result.exceptionOrNull()

@@ -1,14 +1,18 @@
 package me.zkvl.beadsviewer.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -18,8 +22,6 @@ import me.zkvl.beadsviewer.query.service.QueryFilterService
 import me.zkvl.beadsviewer.query.state.QueryStateService
 import me.zkvl.beadsviewer.state.ViewModeStateService
 import org.jetbrains.jewel.ui.component.Text
-import org.jetbrains.jewel.ui.component.TextField
-import org.jetbrains.jewel.foundation.theme.JewelTheme
 
 /**
  * Toolbar for switching between view modes with query input.
@@ -135,24 +137,53 @@ private fun QueryInputSection(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Query text field
-            TextField(
-                value = textFieldValue,
-                onValueChange = onTextFieldValueChange,
-                modifier = Modifier.weight(1f),
-                placeholder = { Text("Enter query (e.g., status:open AND priority:0-1)", fontSize = 11.sp) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    imeAction = ImeAction.Search
-                ),
-                keyboardActions = KeyboardActions(
-                    onSearch = {
-                        if (textFieldValue.isNotBlank()) {
-                            queryFilterService.setQuery(textFieldValue)
-                            queryStateService.setQueryForView(currentMode, textFieldValue)
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .background(
+                        color = androidx.compose.ui.graphics.Color(0x10FFFFFF),
+                        shape = RoundedCornerShape(4.dp)
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = androidx.compose.ui.graphics.Color(0x20FFFFFF),
+                        shape = RoundedCornerShape(4.dp)
+                    )
+                    .padding(horizontal = 8.dp, vertical = 6.dp)
+            ) {
+                BasicTextField(
+                    value = textFieldValue,
+                    onValueChange = onTextFieldValueChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = TextStyle(
+                        color = androidx.compose.ui.graphics.Color(0xFFCCCCCC),
+                        fontSize = 12.sp
+                    ),
+                    cursorBrush = SolidColor(androidx.compose.ui.graphics.Color(0xFF5C9FE5)),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        imeAction = ImeAction.Search
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onSearch = {
+                            if (textFieldValue.isNotBlank()) {
+                                queryFilterService.setQuery(textFieldValue)
+                                queryStateService.setQueryForView(currentMode, textFieldValue)
+                            }
                         }
+                    ),
+                    decorationBox = { innerTextField ->
+                        if (textFieldValue.isEmpty()) {
+                            Text(
+                                "Enter query (e.g., status:open AND priority:0-1)",
+                                fontSize = 11.sp,
+                                color = androidx.compose.ui.graphics.Color(0x88CCCCCC)
+                            )
+                        }
+                        innerTextField()
                     }
                 )
-            )
+            }
 
             // Apply button
             Box(

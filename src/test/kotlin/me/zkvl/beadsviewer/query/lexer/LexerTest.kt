@@ -95,7 +95,7 @@ class LexerTest {
         val result = Lexer("status:open AND priority:0").tokenize()
         assertTrue(result.isSuccess)
         val tokens = result.getOrThrow()
-        assertEquals(7, tokens.size)
+        assertEquals(8, tokens.size)  // Including EOF token
         assertEquals(TokenType.IDENTIFIER, tokens[0].type)
         assertEquals(TokenType.COLON, tokens[1].type)
         assertEquals(TokenType.IDENTIFIER, tokens[2].type)
@@ -103,6 +103,7 @@ class LexerTest {
         assertEquals(TokenType.IDENTIFIER, tokens[4].type)
         assertEquals(TokenType.COLON, tokens[5].type)
         assertEquals(TokenType.NUMBER, tokens[6].type)
+        assertEquals(TokenType.EOF, tokens[7].type)
     }
 
     @Test
@@ -150,8 +151,13 @@ class LexerTest {
         val result = Lexer("(status:open)").tokenize()
         assertTrue(result.isSuccess)
         val tokens = result.getOrThrow()
+        assertEquals(6, tokens.size)  // (, status, :, open, ), EOF
         assertEquals(TokenType.LEFT_PAREN, tokens[0].type)
-        assertEquals(TokenType.RIGHT_PAREN, tokens[3].type)
+        assertEquals(TokenType.IDENTIFIER, tokens[1].type)
+        assertEquals(TokenType.COLON, tokens[2].type)
+        assertEquals(TokenType.IDENTIFIER, tokens[3].type)
+        assertEquals(TokenType.RIGHT_PAREN, tokens[4].type)
+        assertEquals(TokenType.EOF, tokens[5].type)
     }
 
     @Test
