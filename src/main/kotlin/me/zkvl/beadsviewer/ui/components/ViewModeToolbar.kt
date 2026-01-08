@@ -130,6 +130,23 @@ private fun QueryInputSection(
     queryStateService: QueryStateService,
     filteredState: QueryFilterService.FilteredIssuesState
 ) {
+    // Completion state
+    var showCompletion by remember { mutableStateOf(false) }
+    var completionSuggestions by remember { mutableStateOf<List<CompletionSuggestion>>(emptyList()) }
+    var selectedCompletionIndex by remember { mutableStateOf(0) }
+    var cursorPosition by remember { mutableStateOf(0) }
+
+    // Trigger completion when text changes
+    LaunchedEffect(textFieldValue, cursorPosition) {
+        if (textFieldValue.isNotEmpty()) {
+            completionSuggestions = CompletionProvider.getCompletions(textFieldValue, cursorPosition)
+            showCompletion = completionSuggestions.isNotEmpty()
+            selectedCompletionIndex = 0
+        } else {
+            showCompletion = false
+        }
+    }
+
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -153,8 +170,13 @@ private fun QueryInputSection(
             ) {
                 BasicTextField(
                     value = textFieldValue,
-                    onValueChange = onTextFieldValueChange,
+                    onValueChange = { newValue ->
+                        onTextFieldValueChange(newValue)
+                        // Track cursor position (approximation: end of text)
+                        cursorPosition = newValue.length
+                    },
                     modifier = Modifier.fillMaxWidth(),
+                    visualTransformation = QuerySyntaxHighlighter(),
                     textStyle = TextStyle(
                         color = androidx.compose.ui.graphics.Color(0xFFCCCCCC),
                         fontSize = 12.sp
@@ -169,6 +191,7 @@ private fun QueryInputSection(
                             if (textFieldValue.isNotBlank()) {
                                 queryFilterService.setQuery(textFieldValue)
                                 queryStateService.setQueryForView(currentMode, textFieldValue)
+                                showCompletion = false
                             }
                         }
                     ),
@@ -183,6 +206,30 @@ private fun QueryInputSection(
                         innerTextField()
                     }
                 )
+
+                // Show completion popup
+                if (showCompletion) {
+                    CompletionPopup(
+                        suggestions = completionSuggestions,
+                        selectedIndex = selectedCompletionIndex,
+                        onSelect = { suggestion ->
+                            // Insert completion at cursor
+                            val beforeCursor = textFieldValue.substring(0, cursorPosition)
+                            val afterCursor = textFieldValue.substring(cursorPosition)
+
+                            // Find start of current word
+                            val wordStart = beforeCursor.lastIndexOfAny(charArrayOf(' ', ':', ',', '(', ')')) + 1
+                            val newText = beforeCursor.substring(0, wordStart) +
+                                         suggestion.text +
+                                         afterCursor
+
+                            onTextFieldValueChange(newText)
+                            cursorPosition = wordStart + suggestion.text.length
+                            showCompletion = false
+                        },
+                        onDismiss = { showCompletion = false }
+                    )
+                }
             }
 
             // Apply button
