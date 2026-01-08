@@ -12,8 +12,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.key.*
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.intellij.openapi.project.Project
@@ -40,10 +43,10 @@ fun ViewModeToolbar(
     // Subscribe to query state
     val filteredState by queryFilterService.filteredState.collectAsState()
 
-    // Local state for text field
+    // Local state for text field (using TextFieldValue for proper cursor tracking)
     var textFieldValue by remember(currentMode) {
         val saved = queryStateService.getQueryForView(currentMode)
-        mutableStateOf(saved ?: "")
+        mutableStateOf(TextFieldValue(text = saved ?: "", selection = TextRange.Zero))
     }
 
     Column(
@@ -124,8 +127,8 @@ private fun ViewModeButton(
 private fun QueryInputSection(
     project: Project,
     currentMode: ViewMode,
-    textFieldValue: String,
-    onTextFieldValueChange: (String) -> Unit,
+    textFieldValue: TextFieldValue,
+    onTextFieldValueChange: (TextFieldValue) -> Unit,
     queryFilterService: QueryFilterService,
     queryStateService: QueryStateService,
     filteredState: QueryFilterService.FilteredIssuesState
@@ -134,12 +137,14 @@ private fun QueryInputSection(
     var showCompletion by remember { mutableStateOf(false) }
     var completionSuggestions by remember { mutableStateOf<List<CompletionSuggestion>>(emptyList()) }
     var selectedCompletionIndex by remember { mutableStateOf(0) }
-    var cursorPosition by remember { mutableStateOf(0) }
 
-    // Trigger completion when text changes
-    LaunchedEffect(textFieldValue, cursorPosition) {
-        if (textFieldValue.isNotEmpty()) {
-            completionSuggestions = CompletionProvider.getCompletions(textFieldValue, cursorPosition)
+    // Trigger completion when text or cursor position changes
+    LaunchedEffect(textFieldValue.text, textFieldValue.selection.start) {
+        if (textFieldValue.text.isNotEmpty()) {
+            completionSuggestions = CompletionProvider.getCompletions(
+                textFieldValue.text,
+                textFieldValue.selection.start
+            )
             showCompletion = completionSuggestions.isNotEmpty()
             selectedCompletionIndex = 0
         } else {
@@ -170,12 +175,72 @@ private fun QueryInputSection(
             ) {
                 BasicTextField(
                     value = textFieldValue,
-                    onValueChange = { newValue ->
+                    onValueChange = { newValue: TextFieldValue ->
                         onTextFieldValueChange(newValue)
-                        // Track cursor position (approximation: end of text)
-                        cursorPosition = newValue.length
+                        // Cursor position is now tracked automatically in TextFieldValue.selection
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onPreviewKeyEvent { keyEvent ->
+                            // Handle keyboard events for completion popup
+                            if (!showCompletion) return@onPreviewKeyEvent false
+
+                            when (keyEvent.key) {
+                                Key.DirectionDown -> {
+                                    if (keyEvent.type == KeyEventType.KeyDown) {
+                                        selectedCompletionIndex =
+                                            (selectedCompletionIndex + 1).coerceAtMost(completionSuggestions.size - 1)
+                                    }
+                                    true  // Consume event
+                                }
+                                Key.DirectionUp -> {
+                                    if (keyEvent.type == KeyEventType.KeyDown) {
+                                        selectedCompletionIndex =
+                                            (selectedCompletionIndex - 1).coerceAtLeast(0)
+                                    }
+                                    true
+                                }
+                                Key.Enter, Key.Tab -> {
+                                    if (keyEvent.type == KeyEventType.KeyDown && completionSuggestions.isNotEmpty()) {
+                                        // Accept selected suggestion
+                                        val suggestion = completionSuggestions[selectedCompletionIndex]
+
+                                        // Same logic as onSelect callback
+                                        val cursorPos = textFieldValue.selection.start
+                                        val beforeCursor = textFieldValue.text.substring(0, cursorPos)
+                                        val afterCursor = textFieldValue.text.substring(cursorPos)
+
+                                        val wordStart = beforeCursor.lastIndexOfAny(charArrayOf(' ', ':', ',', '(', ')')) + 1
+                                        val wordEndOffset = afterCursor.indexOfFirst {
+                                            it in charArrayOf(' ', ':', ',', '(', ')', '\n')
+                                        }.let { if (it == -1) afterCursor.length else it }
+                                        val wordEnd = cursorPos + wordEndOffset
+
+                                        val newText = textFieldValue.text.substring(0, wordStart) +
+                                                     suggestion.text +
+                                                     textFieldValue.text.substring(wordEnd)
+
+                                        val newCursorPos = wordStart + suggestion.text.length
+
+                                        onTextFieldValueChange(
+                                            TextFieldValue(
+                                                text = newText,
+                                                selection = TextRange(newCursorPos)
+                                            )
+                                        )
+                                        showCompletion = false
+                                    }
+                                    true
+                                }
+                                Key.Escape -> {
+                                    if (keyEvent.type == KeyEventType.KeyDown) {
+                                        showCompletion = false
+                                    }
+                                    true
+                                }
+                                else -> false  // Don't consume other keys
+                            }
+                        },
                     visualTransformation = QuerySyntaxHighlighter(),
                     textStyle = TextStyle(
                         color = androidx.compose.ui.graphics.Color(0xFFCCCCCC),
@@ -188,15 +253,15 @@ private fun QueryInputSection(
                     ),
                     keyboardActions = KeyboardActions(
                         onSearch = {
-                            if (textFieldValue.isNotBlank()) {
-                                queryFilterService.setQuery(textFieldValue)
-                                queryStateService.setQueryForView(currentMode, textFieldValue)
+                            if (textFieldValue.text.isNotBlank()) {
+                                queryFilterService.setQuery(textFieldValue.text)
+                                queryStateService.setQueryForView(currentMode, textFieldValue.text)
                                 showCompletion = false
                             }
                         }
                     ),
                     decorationBox = { innerTextField ->
-                        if (textFieldValue.isEmpty()) {
+                        if (textFieldValue.text.isEmpty()) {
                             Text(
                                 "Enter query (e.g., status:open AND priority:0-1)",
                                 fontSize = 11.sp,
@@ -213,18 +278,33 @@ private fun QueryInputSection(
                         suggestions = completionSuggestions,
                         selectedIndex = selectedCompletionIndex,
                         onSelect = { suggestion ->
-                            // Insert completion at cursor
-                            val beforeCursor = textFieldValue.substring(0, cursorPosition)
-                            val afterCursor = textFieldValue.substring(cursorPosition)
+                            // Insert completion at cursor with proper word boundary detection
+                            val cursorPos = textFieldValue.selection.start
+                            val beforeCursor = textFieldValue.text.substring(0, cursorPos)
+                            val afterCursor = textFieldValue.text.substring(cursorPos)
 
                             // Find start of current word
                             val wordStart = beforeCursor.lastIndexOfAny(charArrayOf(' ', ':', ',', '(', ')')) + 1
-                            val newText = beforeCursor.substring(0, wordStart) +
-                                         suggestion.text +
-                                         afterCursor
 
-                            onTextFieldValueChange(newText)
-                            cursorPosition = wordStart + suggestion.text.length
+                            // Find end of current word in afterCursor
+                            val wordEndOffset = afterCursor.indexOfFirst {
+                                it in charArrayOf(' ', ':', ',', '(', ')', '\n')
+                            }.let { if (it == -1) afterCursor.length else it }
+                            val wordEnd = cursorPos + wordEndOffset
+
+                            // Build new text: before + suggestion + after (skipping current word)
+                            val newText = textFieldValue.text.substring(0, wordStart) +
+                                         suggestion.text +
+                                         textFieldValue.text.substring(wordEnd)
+
+                            val newCursorPos = wordStart + suggestion.text.length
+
+                            onTextFieldValueChange(
+                                TextFieldValue(
+                                    text = newText,
+                                    selection = TextRange(newCursorPos)
+                                )
+                            )
                             showCompletion = false
                         },
                         onDismiss = { showCompletion = false }
@@ -236,23 +316,23 @@ private fun QueryInputSection(
             Box(
                 modifier = Modifier
                     .background(
-                        color = if (textFieldValue.isNotBlank()) {
+                        color = if (textFieldValue.text.isNotBlank()) {
                             androidx.compose.ui.graphics.Color(0xFF5C9FE5).copy(alpha = 0.3f)
                         } else {
                             androidx.compose.ui.graphics.Color(0x08FFFFFF)
                         },
                         shape = RoundedCornerShape(4.dp)
                     )
-                    .clickable(enabled = textFieldValue.isNotBlank()) {
-                        queryFilterService.setQuery(textFieldValue)
-                        queryStateService.setQueryForView(currentMode, textFieldValue)
+                    .clickable(enabled = textFieldValue.text.isNotBlank()) {
+                        queryFilterService.setQuery(textFieldValue.text)
+                        queryStateService.setQueryForView(currentMode, textFieldValue.text)
                     }
                     .padding(horizontal = 12.dp, vertical = 6.dp)
             ) {
                 Text(
                     "Filter",
                     fontSize = 11.sp,
-                    color = if (textFieldValue.isNotBlank()) {
+                    color = if (textFieldValue.text.isNotBlank()) {
                         androidx.compose.ui.graphics.Color(0xFF5C9FE5)
                     } else {
                         androidx.compose.ui.graphics.Color(0x88CCCCCC)
@@ -261,7 +341,7 @@ private fun QueryInputSection(
             }
 
             // Clear button
-            if (textFieldValue.isNotBlank() ||
+            if (textFieldValue.text.isNotBlank() ||
                 filteredState !is QueryFilterService.FilteredIssuesState.NoFilter) {
                 Box(
                     modifier = Modifier
@@ -270,7 +350,7 @@ private fun QueryInputSection(
                             shape = RoundedCornerShape(4.dp)
                         )
                         .clickable {
-                            onTextFieldValueChange("")
+                            onTextFieldValueChange(TextFieldValue(text = "", selection = TextRange.Zero))
                             queryFilterService.clearQuery()
                             queryStateService.clearQueryForView(currentMode)
                         }

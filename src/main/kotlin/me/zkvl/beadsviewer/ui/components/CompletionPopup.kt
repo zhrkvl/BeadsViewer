@@ -42,6 +42,11 @@ fun CompletionPopup(
 ) {
     if (suggestions.isEmpty()) return
 
+    // Colors matching ViewModeToolbar theme
+    val bgColor = Color(0x10FFFFFF)  // Semi-transparent white background (matches text field)
+    val borderColor = Color(0x20FFFFFF)  // Semi-transparent white border
+    val selectedColor = Color(0xFF5C9FE5).copy(alpha = 0.3f)  // Blue selection (matches buttons)
+
     Popup(
         onDismissRequest = onDismiss,
         properties = PopupProperties(focusable = false)
@@ -51,12 +56,12 @@ fun CompletionPopup(
                 .width(400.dp)
                 .heightIn(max = 300.dp)
                 .background(
-                    color = Color(0xFF3C3F41),  // IntelliJ Darcula background
+                    color = bgColor,  // Matches ViewModeToolbar text field background
                     shape = RoundedCornerShape(4.dp)
                 )
                 .border(
                     width = 1.dp,
-                    color = Color(0xFF6B6B6B),  // Border color
+                    color = borderColor,  // Matches ViewModeToolbar text field border
                     shape = RoundedCornerShape(4.dp)
                 )
         ) {
@@ -65,7 +70,8 @@ fun CompletionPopup(
                     CompletionItem(
                         suggestion = suggestion,
                         isSelected = index == selectedIndex,
-                        onClick = { onSelect(suggestion) }
+                        onClick = { onSelect(suggestion) },
+                        selectedColor = selectedColor
                     )
                 }
             }
@@ -87,13 +93,20 @@ fun CompletionPopup(
 private fun CompletionItem(
     suggestion: CompletionSuggestion,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    selectedColor: Color
 ) {
+    // Text colors matching ViewModeToolbar
+    val primaryTextColor = Color(0xFFCCCCCC)  // Standard text (matches ViewModeToolbar)
+    val secondaryTextColor = Color(0xFFAAAAAA)  // Dimmer text
+    val typeTextColor = Color(0xFF888888)  // Type info (medium gray)
+    val tailTextColor = Color(0xFF666666)  // Tail text (darker gray)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                if (isSelected) Color(0xFF4B6EAF).copy(alpha = 0.3f)  // Selection highlight
+                if (isSelected) selectedColor  // Blue selection highlight
                 else Color.Transparent
             )
             .clickable(onClick = onClick)
@@ -103,7 +116,7 @@ private fun CompletionItem(
         Text(
             text = suggestion.displayText,
             fontSize = 12.sp,
-            color = if (suggestion.isBold) Color(0xFFFFFFFF) else Color(0xFFCCCCCC),
+            color = if (suggestion.isBold) primaryTextColor else secondaryTextColor,
             modifier = Modifier.weight(1f)
         )
 
@@ -112,7 +125,7 @@ private fun CompletionItem(
             Text(
                 text = typeText,
                 fontSize = 11.sp,
-                color = Color(0xFF888888),
+                color = typeTextColor,
                 modifier = Modifier.padding(start = 8.dp)
             )
         }
@@ -122,7 +135,7 @@ private fun CompletionItem(
             Text(
                 text = tailText,
                 fontSize = 11.sp,
-                color = Color(0xFF666666),
+                color = tailTextColor,
                 modifier = Modifier.padding(start = 4.dp)
             )
         }

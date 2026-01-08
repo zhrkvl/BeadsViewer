@@ -51,7 +51,19 @@ object CompletionProvider {
         if (currentWord.isEmpty()) return emptyList()
 
         // Detect context: after colon = value completion, otherwise = field/keyword
-        val isAfterColon = beforeCursor.trimEnd().endsWith(":")
+        // Fixed: Check for last colon position instead of trimEnd().endsWith(":")
+        val lastColonIndex = beforeCursor.lastIndexOf(':')
+        val lastSpaceIndex = beforeCursor.lastIndexOf(' ')
+
+        // After colon if:
+        // 1. Colon exists
+        // 2. Colon is after the last space (or no space exists)
+        // 3. Between colon and cursor is only whitespace/word characters (no operators)
+        val isAfterColon = lastColonIndex != -1 &&
+                          lastColonIndex > lastSpaceIndex &&
+                          beforeCursor.substring(lastColonIndex + 1).all {
+                              it.isWhitespace() || it.isLetterOrDigit() || it == '-' || it == '_'
+                          }
 
         if (isAfterColon) {
             // VALUE COMPLETION: Get field name, suggest appropriate values
@@ -212,9 +224,17 @@ object CompletionProvider {
     /**
      * Extract the field name before the colon in a query.
      * Example: "status:op" → "status"
+     * Example: "status: " → "status"
      */
     private fun extractFieldBeforeColon(text: String): String? {
-        val match = Regex("""(\w+)\s*:\s*\w*$""").find(text)
-        return match?.groupValues?.get(1)?.lowercase()
+        val lastColonIndex = text.lastIndexOf(':')
+        if (lastColonIndex == -1) return null
+
+        // Find the word before the colon
+        val beforeColon = text.substring(0, lastColonIndex).trimEnd()
+        val wordStart = beforeColon.lastIndexOfAny(charArrayOf(' ', '(', ')')) + 1
+        val fieldName = beforeColon.substring(wordStart).trim().lowercase()
+
+        return if (fieldName.isNotEmpty()) fieldName else null
     }
 }
