@@ -1,5 +1,7 @@
 # Beads Viewer - IntelliJ Plugin
 
+Please note, this repo is in the early development state. The plugin can still be used to display in multiple views or querying with filters, but I give no guarantees. Also, if you find it useful, you can write me some feedback `ellesterate@gmail.com`. 
+
 An IntelliJ Platform plugin for **Beads**, a git-backed issue tracker designed for AI-supervised coding workflows.
 
 ## About Beads
