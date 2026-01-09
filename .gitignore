@@ -47,3 +47,9 @@ bin/
 # bv (beads viewer) local config and caches
 .bv/
 /.idea/
+
+# Plugin signing keys (if stored locally in project)
+# Note: Default location is ~/.intellij-plugin-signing/
+*.pem
+*.crt
+signing/

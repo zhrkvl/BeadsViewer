@@ -51,6 +51,16 @@ intellijPlatform {
             Initial version
         """.trimIndent()
     }
+
+    signing {
+        certificateChain.set(providers.environmentVariable("CERTIFICATE_CHAIN"))
+        privateKey.set(providers.environmentVariable("PRIVATE_KEY"))
+        password.set(providers.environmentVariable("PRIVATE_KEY_PASSWORD"))
+    }
+
+    publishing {
+        token.set(providers.environmentVariable("PUBLISH_TOKEN"))
+    }
 }
 
 tasks {
@@ -64,8 +74,8 @@ tasks {
     withType<Test> {
         useJUnitPlatform()
         systemProperty("idea.is.internal", "true")
-        systemProperty("idea.system.path", "${project.buildDir}/idea-system")
-        systemProperty("idea.config.path", "${project.buildDir}/idea-config")
+        systemProperty("idea.system.path", "${layout.buildDirectory.get()}/idea-system")
+        systemProperty("idea.config.path", "${layout.buildDirectory.get()}/idea-config")
     }
 }
 
