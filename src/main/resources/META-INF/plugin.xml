@@ -1,39 +1,25 @@
-<!-- Plugin Configuration File: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-    <!-- Unique identifier of the plugin. It should be FQN, cannot be changed between the plugin versions. -->
     <id>me.zkvl.beadsviewer</id>
-
-    <!-- Public plugin name should be written in Title Case.
-         Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-name -->
     <name>Beads Viewer</name>
-
-    <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
     <vendor url="https://zkvl.me">Zakhar Kaval</vendor>
 
-    <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
-         Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-description -->
     <description><![CDATA[
         IntelliJ Platform integration for <strong>Beads</strong>, a git-backed issue tracker designed for AI-supervised coding workflows.<br>
         <br>
         Explore, manage, and visualize your project's issues directly within IntelliJ IDEA and other JetBrains IDEs.<br>
         <br>
-        <em>Beads stores issues in <code>.beads/issues.jsonl</code> within your repository.</em>
     ]]></description>
 
-    <!-- Product and plugin compatibility requirements.
-         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.compose</depends>
 
     <resource-bundle>messages.BeadsBundle</resource-bundle>
-    <!-- Extensions defined by the plugin.
-         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
+
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="BeadsExplorer" factoryClass="me.zkvl.beadsviewer.BeadsToolWindowFactory"
                     icon="AllIcons.Toolwindows.ToolWindowPalette"/>
         <projectService serviceImplementation="me.zkvl.beadsviewer.state.ViewModeStateService"/>
     </extensions>
 
-    <!-- Project-level file listener for .beads/issues.jsonl -->
     <projectListeners>
         <listener class="me.zkvl.beadsviewer.service.FileWatcherService"
                   topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
