@@ -81,9 +81,17 @@ class IssueRepository(
             )
 
             Result.success(issues)
+        } catch (e: ParseException.FileNotFound) {
+            // File doesn't exist - this is normal for projects without beads
+            logger.info("Beads file not found: $file")
+            Result.failure(e)
         } catch (e: ParseException) {
             logger.warn("Failed to parse $file", e)
             Result.failure(e)
+        } catch (e: java.nio.file.NoSuchFileException) {
+            // Catch NoSuchFileException explicitly to avoid logging it as an error
+            logger.info("Beads file not found: $file")
+            Result.failure(ParseException.FileNotFound(file))
         } catch (e: Exception) {
             logger.error("Unexpected error loading $file", e)
             Result.failure(ParseException.IoError(file, e))
@@ -172,8 +180,13 @@ class IssueRepository(
      * - Works correctly when file is replaced with identical content
      *
      * SHA-256 is fast enough for JSONL files (980 issues ≈ 925KB ≈ 30ms to hash).
+     *
+     * @throws ParseException.FileNotFound if the file doesn't exist
      */
     private fun computeFileHash(file: Path): String {
+        if (!java.nio.file.Files.exists(file)) {
+            throw ParseException.FileNotFound(file)
+        }
         val digest = MessageDigest.getInstance("SHA-256")
         val bytes = file.readBytes()
         val hashBytes = digest.digest(bytes)

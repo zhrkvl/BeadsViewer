@@ -110,7 +110,12 @@ class IssueService(private val project: Project) : Disposable {
                 }
                 .onFailure { error ->
                     _issuesState.value = IssuesState.Error(error.message ?: "Unknown error")
-                    logger.error("Failed to load issues for project: ${project.name}", error)
+                    // Only log as info if file not found (normal for projects without beads)
+                    if (error is me.zkvl.beadsviewer.parser.ParseException.FileNotFound) {
+                        logger.info("No beads directory found for project: ${project.name}")
+                    } else {
+                        logger.error("Failed to load issues for project: ${project.name}", error)
+                    }
                 }
         }
     }
