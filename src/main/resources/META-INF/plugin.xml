@@ -16,7 +16,7 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="BeadsExplorer" factoryClass="me.zkvl.beadsviewer.BeadsToolWindowFactory"
-                    icon="AllIcons.Toolwindows.ToolWindowPalette"/>
+                    icon="me.zkvl.beadsviewer.Icons.PluginIcon"/>
         <projectService serviceImplementation="me.zkvl.beadsviewer.state.ViewModeStateService"/>
     </extensions>
 
