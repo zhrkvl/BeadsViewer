@@ -7,9 +7,11 @@ import androidx.compose.ui.Modifier
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
+import me.zkvl.beadsviewer.service.IssueService
 import me.zkvl.beadsviewer.state.ViewModeStateService
 import me.zkvl.beadsviewer.ui.ViewRouter
 import me.zkvl.beadsviewer.ui.components.ViewModeToolbar
+import me.zkvl.beadsviewer.ui.views.NoBeadsFoundView
 import org.jetbrains.jewel.bridge.addComposeTab
 
 class BeadsToolWindowFactory : ToolWindowFactory {
@@ -24,6 +26,16 @@ class BeadsToolWindowFactory : ToolWindowFactory {
 
 @Composable
 private fun BeadsViewerContent(project: Project) {
+    // Get issue service and observe its state
+    val issueService = remember { IssueService.getInstance(project) }
+    val issuesState by issueService.issuesState.collectAsState()
+
+    // Show no beads found view if there's an error
+    if (issuesState is IssueService.IssuesState.Error) {
+        NoBeadsFoundView()
+        return
+    }
+
     // Load persisted view mode
     val stateService = remember { ViewModeStateService.getInstance(project) }
     var currentViewMode by remember { mutableStateOf(stateService.getCurrentViewMode()) }
