@@ -13,6 +13,7 @@ import me.zkvl.beadsviewer.model.Issue
 import me.zkvl.beadsviewer.query.service.QueryFilterService
 import me.zkvl.beadsviewer.service.IssueService
 import me.zkvl.beadsviewer.ui.components.IssueCard
+import me.zkvl.beadsviewer.ui.theme.BeadsTheme
 import org.jetbrains.jewel.ui.component.Text
 
 /**
@@ -22,6 +23,7 @@ import org.jetbrains.jewel.ui.component.Text
  */
 @Composable
 fun ListView(project: Project) {
+    val colors = BeadsTheme.colors
     val issueService = remember { IssueService.getInstance(project) }
     val queryFilterService = remember { QueryFilterService.getInstance(project) }
 
@@ -49,7 +51,7 @@ fun ListView(project: Project) {
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Loading issues...")
+                    Text("Loading issues...", color = colors.onSurfaceVariant)
                 }
             }
             is IssueService.IssuesState.Error -> {
@@ -57,7 +59,7 @@ fun ListView(project: Project) {
                     modifier = Modifier.fillMaxSize().padding(16.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(state.message)
+                    Text(state.message, color = colors.error)
                 }
             }
             is IssueService.IssuesState.Loaded -> {
@@ -66,14 +68,15 @@ fun ListView(project: Project) {
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("No issues found in .beads/issues.jsonl")
+                        Text("No issues found in .beads/issues.jsonl", color = colors.onSurfaceVariant)
                     }
                 } else {
                     // Header
                     Text(
                         "Beads Issues (${issues.size})",
                         modifier = Modifier.padding(16.dp),
-                        fontSize = 16.sp
+                        fontSize = 16.sp,
+                        color = colors.onSurface
                     )
 
                     LazyColumn(

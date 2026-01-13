@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import me.zkvl.beadsviewer.Icons
+import me.zkvl.beadsviewer.ui.theme.BeadsTheme
 import org.jetbrains.jewel.ui.component.Text
 import org.jetbrains.jewel.ui.component.Link
 import org.jetbrains.jewel.ui.painter.rememberResourcePainterProvider
@@ -19,6 +20,8 @@ import org.jetbrains.jewel.ui.painter.rememberResourcePainterProvider
  */
 @Composable
 fun NoBeadsFoundView() {
+    val colors = BeadsTheme.colors
+
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -44,6 +47,7 @@ fun NoBeadsFoundView() {
             Text(
                 text = "I searched all over the project, but couldn't find any .beads directories.",
                 textAlign = TextAlign.Center,
+                color = colors.onSurface,
                 modifier = Modifier.widthIn(max = 500.dp)
             )
 
@@ -55,7 +59,8 @@ fun NoBeadsFoundView() {
             ) {
                 Text(
                     text = "You can start from ",
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    color = colors.onSurfaceVariant
                 )
                 Link(
                     text = "Beads GitHub package",
@@ -68,15 +73,18 @@ fun NoBeadsFoundView() {
                 )
                 Text(
                     text = ", install it and then do ",
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    color = colors.onSurfaceVariant
                 )
                 Text(
                     text = "`bd init`",
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    color = colors.primary
                 )
                 Text(
                     text = " on your project.",
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    color = colors.onSurfaceVariant
                 )
             }
         }

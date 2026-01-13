@@ -13,6 +13,7 @@ import me.zkvl.beadsviewer.model.Issue
 import me.zkvl.beadsviewer.model.Status
 import me.zkvl.beadsviewer.service.IssueService
 import me.zkvl.beadsviewer.ui.components.IssueCard
+import me.zkvl.beadsviewer.ui.theme.BeadsTheme
 import org.jetbrains.jewel.ui.component.Text
 
 /**
@@ -21,19 +22,20 @@ import org.jetbrains.jewel.ui.component.Text
  */
 @Composable
 fun AttentionView(project: Project) {
+    val colors = BeadsTheme.colors
     val issueService = remember { IssueService.getInstance(project) }
     val issuesState by issueService.issuesState.collectAsState()
 
     when (val state = issuesState) {
         is IssueService.IssuesState.Loading -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Loading issues...")
+                Text("Loading issues...", color = colors.onSurfaceVariant)
             }
             return
         }
         is IssueService.IssuesState.Error -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(state.message)
+                Text(state.message, color = colors.error)
             }
             return
         }
@@ -51,12 +53,13 @@ fun AttentionView(project: Project) {
                 Text(
                     "Issues Needing Attention (${attentionIssues.size})",
                     fontSize = 18.sp,
+                    color = colors.onSurface,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
                 if (attentionIssues.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("No issues need attention - great job!")
+                        Text("No issues need attention - great job!", color = colors.onSurfaceVariant)
                     }
                 } else {
                     LazyColumn(
