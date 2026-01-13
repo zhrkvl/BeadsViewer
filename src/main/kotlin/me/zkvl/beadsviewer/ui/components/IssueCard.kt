@@ -76,6 +76,14 @@ fun IssueCard(
                 overflow = TextOverflow.Ellipsis
             )
 
+            // Open detail link (always visible if callback provided)
+            if (onOpenDetailTab != null) {
+                Link(
+                    text = "Open",
+                    onClick = { onOpenDetailTab(issue) }
+                )
+            }
+
             // Status indicator
             StatusBadge(issue.status.name)
 
