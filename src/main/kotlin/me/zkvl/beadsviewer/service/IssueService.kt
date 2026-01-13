@@ -9,6 +9,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import me.zkvl.beadsviewer.model.DataSource
 import me.zkvl.beadsviewer.model.Issue
 import me.zkvl.beadsviewer.parser.IssueRepository
 import java.nio.file.Path
@@ -47,8 +48,13 @@ class IssueService(private val project: Project) : Disposable {
         /** Initial loading state or reload in progress. */
         object Loading : IssuesState()
 
-        /** Successfully loaded issues. */
-        data class Loaded(val issues: List<Issue>, val timestamp: Long) : IssuesState()
+        /** Successfully loaded issues with metadata. */
+        data class Loaded(
+            val issues: List<Issue>,
+            val dirtyIssueIds: Set<String>,
+            val source: DataSource,
+            val timestamp: Long
+        ) : IssuesState()
 
         /** Error occurred during loading. */
         data class Error(val message: String) : IssuesState()
@@ -71,18 +77,20 @@ class IssueService(private val project: Project) : Disposable {
     }
 
     /**
-     * Get the path to issues.jsonl for this project.
+     * Get the path to .beads directory for this project.
      *
-     * @return Path to issues.jsonl or null if project path not available
+     * @return Path to .beads directory or null if project path not available
      */
-    fun getIssuesFilePath(): Path? {
+    fun getBeadsDir(): Path? {
         val basePath = project.basePath ?: return null
-        return Paths.get(basePath, ".beads", "issues.jsonl")
+        return Paths.get(basePath, ".beads")
     }
 
     /**
      * Load/reload issues from disk.
      * This method is debounced to handle rapid file changes.
+     *
+     * Uses SQLite-first strategy: tries database, falls back to JSONL.
      *
      * @param debounceMs Milliseconds to wait before loading (0 for immediate)
      */
@@ -94,8 +102,8 @@ class IssueService(private val project: Project) : Disposable {
                 delay(debounceMs)
             }
 
-            val file = getIssuesFilePath()
-            if (file == null) {
+            val beadsDir = getBeadsDir()
+            if (beadsDir == null) {
                 _issuesState.value = IssuesState.Error("Project path not found")
                 logger.warn("Cannot load issues: project basePath is null")
                 return@launch
@@ -103,10 +111,15 @@ class IssueService(private val project: Project) : Disposable {
 
             _issuesState.value = IssuesState.Loading
 
-            repository.loadIssues(file)
-                .onSuccess { issues ->
-                    _issuesState.value = IssuesState.Loaded(issues, System.currentTimeMillis())
-                    logger.info("Loaded ${issues.size} issues for project: ${project.name}")
+            repository.loadIssues(beadsDir)
+                .onSuccess { result ->
+                    _issuesState.value = IssuesState.Loaded(
+                        issues = result.issues,
+                        dirtyIssueIds = result.dirtyIssueIds,
+                        source = result.source,
+                        timestamp = result.timestamp
+                    )
+                    logger.info("Loaded ${result.issues.size} issues from ${result.source} (${result.dirtyIssueIds.size} dirty) for project: ${project.name}")
                 }
                 .onFailure { error ->
                     _issuesState.value = IssuesState.Error(error.message ?: "Unknown error")
