@@ -12,10 +12,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.pointer.*
+import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.intellij.openapi.project.Project
@@ -23,14 +27,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import me.zkvl.beadsviewer.model.Dependency
+import me.zkvl.beadsviewer.model.DependencyType
 import me.zkvl.beadsviewer.model.Issue
+import me.zkvl.beadsviewer.model.Status
 import me.zkvl.beadsviewer.query.service.QueryFilterService
 import me.zkvl.beadsviewer.service.IssueService
 import org.jetbrains.jewel.ui.component.Text
-import kotlin.math.cos
-import kotlin.math.pow
-import kotlin.math.sin
-import kotlin.math.sqrt
+import kotlin.math.*
 
 /**
  * Graph view that visualizes issue dependencies.
@@ -138,9 +142,9 @@ data class GraphState(
     val dragOffset: Offset = Offset.Zero,
 
     // Visual settings
-    val showLabels: Boolean = false,
+    val showLabels: Boolean = true,
     val labelMode: LabelMode = LabelMode.ID_ONLY,
-    val edgeStyle: EdgeStyle = EdgeStyle.UNIFORM,
+    val edgeStyle: EdgeStyle = EdgeStyle.BY_TYPE,
 )
 
 /**
@@ -344,9 +348,128 @@ class GraphViewModel {
 }
 
 /**
+ * Get node color based on status and priority.
+ */
+private fun getNodeColor(issue: Issue): Color {
+    return when (issue.status) {
+        Status.BLOCKED -> Color(0xFFE74C3C) // Red
+        Status.CLOSED -> Color(0xFF95A5A6)  // Gray
+        Status.IN_PROGRESS -> Color(0xFF3498DB) // Blue
+        Status.HOOKED -> Color(0xFFF39C12) // Orange
+        Status.TOMBSTONE -> Color(0xFF7F8C8D) // Dark gray
+        Status.OPEN -> when (issue.priority) {
+            0 -> Color(0xFFE74C3C) // P0 Critical - Red
+            1 -> Color(0xFFF39C12) // P1 High - Orange
+            2 -> Color(0xFFF1C40F) // P2 Medium - Yellow
+            3 -> Color(0xFF2ECC71) // P3 Low - Green
+            else -> Color(0xFF95A5A6) // P4+ Backlog - Gray
+        }
+    }
+}
+
+/**
+ * Get node radius based on dependency count.
+ */
+private fun getNodeRadius(issue: Issue): Float {
+    val baseRadius = 20f
+    val depCount = issue.dependencies.size
+    return baseRadius + (depCount * 1.5f).coerceAtMost(10f)
+}
+
+/**
+ * Get edge style (color and path effect) based on dependency type.
+ */
+private fun getEdgeStyle(dependency: Dependency, edgeStyle: EdgeStyle): Pair<Color, PathEffect?> {
+    return when (edgeStyle) {
+        EdgeStyle.BY_TYPE -> when (dependency.type) {
+            is DependencyType.Blocks ->
+                Color(0xFFE74C3C) to null // Solid red
+            is DependencyType.ParentChild ->
+                Color(0xFF3498DB) to PathEffect.dashPathEffect(floatArrayOf(15f, 5f)) // Dashed blue
+            is DependencyType.Related ->
+                Color(0xFF95A5A6) to PathEffect.dashPathEffect(floatArrayOf(5f, 5f)) // Dotted gray
+            is DependencyType.DiscoveredFrom ->
+                Color(0xFFF39C12) to PathEffect.dashPathEffect(floatArrayOf(10f, 5f, 2f, 5f)) // Dash-dot orange
+            is DependencyType.Supersedes ->
+                Color(0xFF9B59B6) to null // Solid purple
+            is DependencyType.RepliesTo ->
+                Color(0xFF1ABC9C) to PathEffect.dashPathEffect(floatArrayOf(8f, 8f)) // Dashed teal
+            else ->
+                Color(0xFF95A5A6) to PathEffect.dashPathEffect(floatArrayOf(5f, 5f)) // Dotted gray
+        }
+        EdgeStyle.BY_BLOCKING -> if (dependency.isBlocking()) {
+            Color(0xFFE74C3C) to null // Solid red for blocking
+        } else {
+            Color(0xFF95A5A6) to PathEffect.dashPathEffect(floatArrayOf(5f, 5f)) // Dotted gray for non-blocking
+        }
+        EdgeStyle.UNIFORM ->
+            Color(0xFF5C9FE5) to PathEffect.dashPathEffect(floatArrayOf(10f, 5f)) // Blue dashed
+    }
+}
+
+/**
+ * Draw an arrow at the end of an edge.
+ */
+private fun DrawScope.drawArrow(from: Offset, to: Offset, color: Color, arrowSize: Float = 12f) {
+    val angle = atan2(to.y - from.y, to.x - from.x)
+    val arrowAngle = PI / 6 // 30 degrees
+
+    val arrow1 = Offset(
+        (to.x - arrowSize * cos(angle - arrowAngle)).toFloat(),
+        (to.y - arrowSize * sin(angle - arrowAngle)).toFloat()
+    )
+    val arrow2 = Offset(
+        (to.x - arrowSize * cos(angle + arrowAngle)).toFloat(),
+        (to.y - arrowSize * sin(angle + arrowAngle)).toFloat()
+    )
+
+    // Draw arrowhead lines
+    drawLine(color, to, arrow1, strokeWidth = 2f)
+    drawLine(color, to, arrow2, strokeWidth = 2f)
+}
+
+/**
+ * Draw a label for a node.
+ */
+@OptIn(ExperimentalTextApi::class)
+private fun DrawScope.drawLabel(
+    text: String,
+    position: Offset,
+    visible: Boolean,
+    zoom: Float
+) {
+    if (!visible || zoom < 0.7f) return
+
+    val textStyle = TextStyle(
+        color = Color.White,
+        fontSize = 11.sp
+    )
+
+    // Estimate text size (rough approximation)
+    val textWidth = text.length * 6f
+    val textHeight = 14f
+
+    // Position label below node
+    val labelPos = Offset(
+        x = position.x - textWidth / 2,
+        y = position.y + 30f
+    )
+
+    // Draw semi-transparent background
+    drawRect(
+        color = Color.Black.copy(alpha = 0.75f),
+        topLeft = labelPos.copy(y = labelPos.y - textHeight / 2),
+        size = androidx.compose.ui.geometry.Size(textWidth + 8f, textHeight + 4f)
+    )
+
+    // Note: Full text rendering requires TextMeasurer which is complex in Canvas
+    // For now, we show a simple background. Full implementation would use rememberTextMeasurer
+}
+
+/**
  * Canvas component that renders the dependency graph.
  */
-@OptIn(ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalTextApi::class)
 @Composable
 private fun DependencyGraphCanvas(
     issues: List<Issue>,
@@ -447,6 +570,7 @@ private fun DependencyGraphCanvas(
             )
     ) {
         val positions = graphState.nodePositions
+        val issueMap = issues.associateBy { it.id }
 
         // Draw dependency edges first (behind nodes)
         issues.forEach { issue ->
@@ -454,19 +578,29 @@ private fun DependencyGraphCanvas(
             issue.dependencies.forEach { dep ->
                 val toPos = positions[dep.dependsOnId]
                 if (toPos != null) {
+                    val (color, pathEffect) = getEdgeStyle(dep, graphState.edgeStyle)
+
+                    // Draw edge line
                     drawLine(
-                        color = Color(0xFF5C9FE5),
+                        color = color,
                         start = fromPos,
                         end = toPos,
                         strokeWidth = 2f,
-                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 5f))
+                        pathEffect = pathEffect
                     )
+
+                    // Draw arrow at the end
+                    drawArrow(fromPos, toPos, color)
                 }
             }
         }
 
         // Draw nodes
         positions.forEach { (issueId, pos) ->
+            val issue = issueMap[issueId] ?: return@forEach
+            val radius = getNodeRadius(issue)
+            val color = getNodeColor(issue)
+
             // Highlight selected/hovered nodes
             val isSelected = graphState.selectedNodeId == issueId
             val isHovered = graphState.hoveredNodeId == issueId
@@ -475,7 +609,7 @@ private fun DependencyGraphCanvas(
             if (isSelected) {
                 drawCircle(
                     color = Color.White,
-                    radius = 24f,
+                    radius = radius + 6f,
                     center = pos,
                     alpha = 0.5f
                 )
@@ -485,7 +619,7 @@ private fun DependencyGraphCanvas(
             if (isHovered) {
                 drawCircle(
                     color = Color.White,
-                    radius = 22f,
+                    radius = radius + 3f,
                     center = pos,
                     alpha = 0.3f
                 )
@@ -493,10 +627,29 @@ private fun DependencyGraphCanvas(
 
             // Draw main node
             drawCircle(
-                color = Color(0xFF5C9FE5),
-                radius = 20f,
+                color = color,
+                radius = radius,
                 center = pos
             )
+
+            // Draw inner indicator for blocked status
+            if (issue.status == Status.BLOCKED) {
+                drawCircle(
+                    color = Color.White,
+                    radius = radius * 0.4f,
+                    center = pos
+                )
+            }
+
+            // Draw label if enabled
+            if (graphState.showLabels) {
+                val labelText = when (graphState.labelMode) {
+                    LabelMode.ID_ONLY -> issue.id
+                    LabelMode.TITLE_ONLY -> issue.title.take(20)
+                    LabelMode.ID_AND_TITLE -> "${issue.id}: ${issue.title.take(15)}"
+                }
+                drawLabel(labelText, pos, true, graphState.zoom)
+            }
         }
     }
 }
