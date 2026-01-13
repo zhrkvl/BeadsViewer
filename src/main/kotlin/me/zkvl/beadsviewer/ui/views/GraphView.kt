@@ -2,6 +2,9 @@ package me.zkvl.beadsviewer.ui.views
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
@@ -12,9 +15,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.onPointerEvent
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.intellij.openapi.project.Project
@@ -27,7 +28,9 @@ import me.zkvl.beadsviewer.query.service.QueryFilterService
 import me.zkvl.beadsviewer.service.IssueService
 import org.jetbrains.jewel.ui.component.Text
 import kotlin.math.cos
+import kotlin.math.pow
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 /**
  * Graph view that visualizes issue dependencies.
@@ -271,6 +274,21 @@ class GraphViewModel {
     }
 
     /**
+     * Hit test to find node at given position.
+     * Returns node ID if a node is at the position, null otherwise.
+     */
+    fun hitTestNode(position: Offset, nodeRadius: Float = 20f): String? {
+        val positions = _graphState.value.nodePositions
+        return positions.entries.firstOrNull { (_, nodePos) ->
+            val distance = sqrt(
+                (position.x - nodePos.x).pow(2) +
+                (position.y - nodePos.y).pow(2)
+            )
+            distance <= nodeRadius
+        }?.key
+    }
+
+    /**
      * Compute layout for the given issues.
      */
     fun computeLayout(issues: List<Issue>) {
@@ -340,15 +358,76 @@ private fun DependencyGraphCanvas(
             .fillMaxWidth()
             .height(600.dp)
             .background(Color(0x08FFFFFF))
-            // Zoom and pan gestures
+            // Hover detection and click handling
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        val position = event.changes.first().position
+
+                        // Transform position to graph coordinates (account for zoom/pan)
+                        val graphPosition = Offset(
+                            x = (position.x - graphState.panOffset.x) / graphState.zoom,
+                            y = (position.y - graphState.panOffset.y) / graphState.zoom
+                        )
+
+                        when (event.type) {
+                            PointerEventType.Move -> {
+                                // Update hover state
+                                val hoveredNode = graphViewModel.hitTestNode(graphPosition)
+                                graphViewModel.setHoveredNode(hoveredNode)
+                            }
+                            PointerEventType.Press -> {
+                                // Handle node selection
+                                val clickedNode = graphViewModel.hitTestNode(graphPosition)
+                                graphViewModel.selectNode(clickedNode)
+                            }
+                            else -> {}
+                        }
+                    }
+                }
+            }
+            // Node dragging with priority over canvas pan
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDragStart = { offset ->
+                        // Transform to graph coordinates
+                        val graphPosition = Offset(
+                            x = (offset.x - graphState.panOffset.x) / graphState.zoom,
+                            y = (offset.y - graphState.panOffset.y) / graphState.zoom
+                        )
+                        val nodeId = graphViewModel.hitTestNode(graphPosition)
+                        if (nodeId != null) {
+                            graphViewModel.startDragNode(nodeId, graphPosition)
+                        }
+                    },
+                    onDrag = { change, dragAmount ->
+                        if (graphState.draggedNodeId != null) {
+                            // Dragging a node - update node position
+                            val scaledDrag = dragAmount / graphState.zoom
+                            val currentPos = graphState.nodePositions[graphState.draggedNodeId]
+                            if (currentPos != null) {
+                                graphViewModel.updateDragNode(currentPos + scaledDrag)
+                            }
+                            change.consume()
+                        } else {
+                            // Not dragging a node - pan the canvas
+                            graphViewModel.applyPan(dragAmount)
+                            change.consume()
+                        }
+                    },
+                    onDragEnd = {
+                        graphViewModel.endDragNode()
+                    }
+                )
+            }
+            // Zoom gestures (pinch)
             .pointerInput(Unit) {
                 detectTransformGestures { centroid, pan, zoom, _ ->
                     if (zoom != 1.0f) {
                         graphViewModel.applyZoom(zoom, centroid)
                     }
-                    if (pan != Offset.Zero) {
-                        graphViewModel.applyPan(pan)
-                    }
+                    // Note: pan is handled by detectDragGestures above
                 }
             }
             // Scroll wheel zoom
