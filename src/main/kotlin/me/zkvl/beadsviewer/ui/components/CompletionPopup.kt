@@ -43,8 +43,8 @@ fun CompletionPopup(
     if (suggestions.isEmpty()) return
 
     // Colors matching ViewModeToolbar theme
-    val bgColor = Color(0x10FFFFFF)  // Semi-transparent white background (matches text field)
-    val borderColor = Color(0x20FFFFFF)  // Semi-transparent white border
+    val bgColor = Color(0xF02B2B2B)  // Solid dark gray background for readability
+    val borderColor = Color(0xFF3C3F41)  // Solid border for clear separation
     val selectedColor = Color(0xFF5C9FE5).copy(alpha = 0.3f)  // Blue selection (matches buttons)
 
     Popup(
