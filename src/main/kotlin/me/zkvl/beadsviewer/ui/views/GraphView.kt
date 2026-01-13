@@ -12,9 +12,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextMeasurer
@@ -578,41 +580,65 @@ private fun DrawScope.drawArrow(from: Offset, to: Offset, color: Color, arrowSiz
 }
 
 /**
- * Draw a label for a node.
+ * Transform screen coordinates to graph coordinates.
+ */
+private fun screenToGraph(screenPos: Offset, graphState: GraphState): Offset {
+    return Offset(
+        x = (screenPos.x - graphState.panOffset.x) / graphState.zoom,
+        y = (screenPos.y - graphState.panOffset.y) / graphState.zoom
+    )
+}
+
+/**
+ * Transform graph coordinates to screen coordinates.
+ */
+private fun graphToScreen(graphPos: Offset, graphState: GraphState): Offset {
+    return Offset(
+        x = graphPos.x * graphState.zoom + graphState.panOffset.x,
+        y = graphPos.y * graphState.zoom + graphState.panOffset.y
+    )
+}
+
+/**
+ * Draw a label for a node using Compose TextMeasurer.
  */
 @OptIn(ExperimentalTextApi::class)
 private fun DrawScope.drawLabel(
     text: String,
     position: Offset,
     visible: Boolean,
-    zoom: Float
+    zoom: Float,
+    textMeasurer: TextMeasurer
 ) {
     if (!visible || zoom < 0.7f) return
 
-    val textStyle = TextStyle(
-        color = Color.White,
-        fontSize = 11.sp
+    val textLayoutResult = textMeasurer.measure(
+        text = text,
+        style = TextStyle(
+            color = Color.White,
+            fontSize = 11.sp
+        )
     )
 
-    // Estimate text size (rough approximation)
-    val textWidth = text.length * 6f
-    val textHeight = 14f
+    val textWidth = textLayoutResult.size.width.toFloat()
+    val textHeight = textLayoutResult.size.height.toFloat()
 
     // Position label below node
-    val labelPos = Offset(
-        x = position.x - textWidth / 2,
-        y = position.y + 30f
-    )
+    val labelX = position.x - textWidth / 2
+    val labelY = position.y + 35f
 
     // Draw semi-transparent background
     drawRect(
         color = Color.Black.copy(alpha = 0.75f),
-        topLeft = labelPos.copy(y = labelPos.y - textHeight / 2),
+        topLeft = Offset(labelX - 4f, labelY - 2f),
         size = androidx.compose.ui.geometry.Size(textWidth + 8f, textHeight + 4f)
     )
 
-    // Note: Full text rendering requires TextMeasurer which is complex in Canvas
-    // For now, we show a simple background. Full implementation would use rememberTextMeasurer
+    // Draw text
+    drawText(
+        textLayoutResult = textLayoutResult,
+        topLeft = Offset(labelX, labelY)
+    )
 }
 
 /**
@@ -626,11 +652,14 @@ private fun DependencyGraphCanvas(
     graphViewModel: GraphViewModel
 ) {
     val colors = BeadsTheme.colors
+    val textMeasurer = rememberTextMeasurer()
+
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
             .height(600.dp)
             .background(colors.surfaceHover)
+            .clipToBounds() // Prevent overflow
             // Hover detection and click handling
             .pointerInput(Unit) {
                 awaitPointerEventScope {
@@ -638,11 +667,8 @@ private fun DependencyGraphCanvas(
                         val event = awaitPointerEvent()
                         val position = event.changes.first().position
 
-                        // Transform position to graph coordinates (account for zoom/pan)
-                        val graphPosition = Offset(
-                            x = (position.x - graphState.panOffset.x) / graphState.zoom,
-                            y = (position.y - graphState.panOffset.y) / graphState.zoom
-                        )
+                        // Transform position to graph coordinates
+                        val graphPosition = screenToGraph(position, graphState)
 
                         when (event.type) {
                             PointerEventType.Move -> {
@@ -665,10 +691,7 @@ private fun DependencyGraphCanvas(
                 detectDragGestures(
                     onDragStart = { offset ->
                         // Transform to graph coordinates
-                        val graphPosition = Offset(
-                            x = (offset.x - graphState.panOffset.x) / graphState.zoom,
-                            y = (offset.y - graphState.panOffset.y) / graphState.zoom
-                        )
+                        val graphPosition = screenToGraph(offset, graphState)
                         val nodeId = graphViewModel.hitTestNode(graphPosition)
                         if (nodeId != null) {
                             graphViewModel.startDragNode(nodeId, graphPosition)
@@ -711,94 +734,95 @@ private fun DependencyGraphCanvas(
                     graphViewModel.applyScrollZoom(-scrollDelta, change.position)
                 }
             }
-            // Apply viewport transformations
-            .graphicsLayer(
-                scaleX = graphState.zoom,
-                scaleY = graphState.zoom,
-                translationX = graphState.panOffset.x,
-                translationY = graphState.panOffset.y
-            )
     ) {
         val positions = graphState.nodePositions
         val issueMap = issues.associateBy { it.id }
 
-        // Draw dependency edges first (behind nodes)
-        issues.forEach { issue ->
-            val fromPos = positions[issue.id] ?: return@forEach
-            issue.dependencies.forEach { dep ->
-                val toPos = positions[dep.dependsOnId]
-                if (toPos != null) {
-                    val (color, pathEffect) = getEdgeStyle(dep, graphState.edgeStyle)
+        // Apply zoom and pan transforms to all drawing operations
+        withTransform({
+            translate(graphState.panOffset.x, graphState.panOffset.y)
+            scale(graphState.zoom, graphState.zoom)
+        }) {
+            // Draw dependency edges first (behind nodes)
+            // Filter to only show edges between nodes that exist in positions
+            issues.forEach { issue ->
+                val fromPos = positions[issue.id] ?: return@forEach
+                issue.dependencies.forEach { dep ->
+                    val toPos = positions[dep.dependsOnId]
+                    // Only draw edge if both nodes exist
+                    if (toPos != null) {
+                        val (color, pathEffect) = getEdgeStyle(dep, graphState.edgeStyle)
 
-                    // Draw edge line
-                    drawLine(
-                        color = color,
-                        start = fromPos,
-                        end = toPos,
-                        strokeWidth = 2f,
-                        pathEffect = pathEffect
-                    )
+                        // Draw edge line
+                        drawLine(
+                            color = color,
+                            start = fromPos,
+                            end = toPos,
+                            strokeWidth = 2f,
+                            pathEffect = pathEffect
+                        )
 
-                    // Draw arrow at the end
-                    drawArrow(fromPos, toPos, color)
+                        // Draw arrow at the end
+                        drawArrow(fromPos, toPos, color)
+                    }
                 }
             }
-        }
 
-        // Draw nodes
-        positions.forEach { (issueId, pos) ->
-            val issue = issueMap[issueId] ?: return@forEach
-            val radius = getNodeRadius(issue)
-            val color = getNodeColor(issue)
+            // Draw nodes
+            positions.forEach { (issueId, pos) ->
+                val issue = issueMap[issueId] ?: return@forEach
+                val radius = getNodeRadius(issue)
+                val color = getNodeColor(issue)
 
-            // Highlight selected/hovered nodes
-            val isSelected = graphState.selectedNodeId == issueId
-            val isHovered = graphState.hoveredNodeId == issueId
+                // Highlight selected/hovered nodes
+                val isSelected = graphState.selectedNodeId == issueId
+                val isHovered = graphState.hoveredNodeId == issueId
 
-            // Draw selection ring
-            if (isSelected) {
+                // Draw selection ring
+                if (isSelected) {
+                    drawCircle(
+                        color = Color.White,
+                        radius = radius + 6f,
+                        center = pos,
+                        alpha = 0.5f
+                    )
+                }
+
+                // Draw hover ring
+                if (isHovered) {
+                    drawCircle(
+                        color = Color.White,
+                        radius = radius + 3f,
+                        center = pos,
+                        alpha = 0.3f
+                    )
+                }
+
+                // Draw main node
                 drawCircle(
-                    color = Color.White,
-                    radius = radius + 6f,
-                    center = pos,
-                    alpha = 0.5f
-                )
-            }
-
-            // Draw hover ring
-            if (isHovered) {
-                drawCircle(
-                    color = Color.White,
-                    radius = radius + 3f,
-                    center = pos,
-                    alpha = 0.3f
-                )
-            }
-
-            // Draw main node
-            drawCircle(
-                color = color,
-                radius = radius,
-                center = pos
-            )
-
-            // Draw inner indicator for blocked status
-            if (issue.status == Status.BLOCKED) {
-                drawCircle(
-                    color = Color.White,
-                    radius = radius * 0.4f,
+                    color = color,
+                    radius = radius,
                     center = pos
                 )
-            }
 
-            // Draw label if enabled
-            if (graphState.showLabels) {
-                val labelText = when (graphState.labelMode) {
-                    LabelMode.ID_ONLY -> issue.id
-                    LabelMode.TITLE_ONLY -> issue.title.take(20)
-                    LabelMode.ID_AND_TITLE -> "${issue.id}: ${issue.title.take(15)}"
+                // Draw inner indicator for blocked status
+                if (issue.status == Status.BLOCKED) {
+                    drawCircle(
+                        color = Color.White,
+                        radius = radius * 0.4f,
+                        center = pos
+                    )
                 }
-                drawLabel(labelText, pos, true, graphState.zoom)
+
+                // Draw label if enabled
+                if (graphState.showLabels) {
+                    val labelText = when (graphState.labelMode) {
+                        LabelMode.ID_ONLY -> issue.id
+                        LabelMode.TITLE_ONLY -> issue.title.take(20)
+                        LabelMode.ID_AND_TITLE -> "${issue.id}: ${issue.title.take(15)}"
+                    }
+                    drawLabel(labelText, pos, true, graphState.zoom, textMeasurer)
+                }
             }
         }
     }
