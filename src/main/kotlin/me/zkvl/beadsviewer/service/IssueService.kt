@@ -159,12 +159,14 @@ class IssueService(private val project: Project) : Disposable {
     }
 
     /**
-     * Called when file watcher detects changes to issues.jsonl.
-     * Uses 300ms debounce to handle rapid edits (e.g., save + auto-format).
+     * Called when file watcher detects changes to Beads files.
+     * Uses configurable debounce to handle rapid changes.
+     *
+     * @param debounceMs Milliseconds to debounce (default 300ms for JSONL, 100ms for SQLite)
      */
-    fun onFileChanged() {
-        logger.info("File change detected for project: ${project.name}, scheduling reload")
-        loadIssues(debounceMs = 300)
+    fun onFileChanged(debounceMs: Long = 300) {
+        logger.info("File change detected for project: ${project.name}, scheduling reload with ${debounceMs}ms debounce")
+        loadIssues(debounceMs = debounceMs)
     }
 
     override fun dispose() {
