@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.intellij.openapi.project.Project
 import me.zkvl.beadsviewer.model.Issue
+import me.zkvl.beadsviewer.service.IssueDetailTabService
 import me.zkvl.beadsviewer.service.IssueService
 import me.zkvl.beadsviewer.ui.components.IssueCard
 import me.zkvl.beadsviewer.ui.theme.BeadsTheme
@@ -25,6 +26,7 @@ import org.jetbrains.jewel.ui.component.Text
 @Composable
 fun ActionableView(project: Project) {
     val issueService = remember { IssueService.getInstance(project) }
+    val tabService = remember { IssueDetailTabService.getInstance(project) }
     val issuesState by issueService.issuesState.collectAsState()
 
     when (val state = issuesState) {
@@ -42,6 +44,7 @@ fun ActionableView(project: Project) {
         }
         is IssueService.IssuesState.Loaded -> {
             val issues = state.issues
+            val dirtyIssueIds = state.dirtyIssueIds
 
             // Group by labels (tracks)
             val issuesByLabel = issues
@@ -66,13 +69,13 @@ fun ActionableView(project: Project) {
 
                 // Display each track/label group
                 issuesByLabel.forEach { (label, issuesInTrack) ->
-                    TrackSection(label, issuesInTrack)
+                    TrackSection(project, label, issuesInTrack, dirtyIssueIds)
                     Spacer(modifier = Modifier.height(16.dp))
                 }
 
                 // Unlabeled issues
                 if (unlabeled.isNotEmpty()) {
-                    TrackSection("No Label", unlabeled)
+                    TrackSection(project, "No Label", unlabeled, dirtyIssueIds)
                 }
             }
         }
@@ -80,7 +83,8 @@ fun ActionableView(project: Project) {
 }
 
 @Composable
-private fun TrackSection(label: String, issues: List<Issue>) {
+private fun TrackSection(project: Project, label: String, issues: List<Issue>, dirtyIssueIds: Set<String>) {
+    val tabService = remember { IssueDetailTabService.getInstance(project) }
     val colors = BeadsTheme.colors
     Column(
         modifier = Modifier
@@ -112,7 +116,11 @@ private fun TrackSection(label: String, issues: List<Issue>) {
             IssueCard(
                 issue = issue,
                 expandable = true,
-                modifier = Modifier.padding(bottom = 8.dp)
+                onOpenDetailTab = { selectedIssue ->
+                    tabService.openIssueDetailTab(selectedIssue)
+                },
+                modifier = Modifier.padding(bottom = 8.dp),
+                isDirty = dirtyIssueIds.contains(issue.id)
             )
         }
     }

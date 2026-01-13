@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.sp
 import com.intellij.openapi.project.Project
 import me.zkvl.beadsviewer.model.Issue
 import me.zkvl.beadsviewer.model.Status
+import me.zkvl.beadsviewer.service.IssueDetailTabService
 import me.zkvl.beadsviewer.service.IssueService
 import me.zkvl.beadsviewer.ui.components.IssueCard
 import me.zkvl.beadsviewer.ui.theme.BeadsTheme
@@ -28,6 +29,7 @@ import org.jetbrains.jewel.ui.component.Text
 @Composable
 fun SprintView(project: Project) {
     val issueService = remember { IssueService.getInstance(project) }
+    val tabService = remember { IssueDetailTabService.getInstance(project) }
     val issuesState by issueService.issuesState.collectAsState()
 
     when (val state = issuesState) {
@@ -45,6 +47,7 @@ fun SprintView(project: Project) {
         }
         is IssueService.IssuesState.Loaded -> {
             val issues = state.issues
+            val dirtyIssueIds = state.dirtyIssueIds
 
             // Filter to active issues (not closed)
             val sprintIssues = issues.filter { it.status != Status.CLOSED }
@@ -101,7 +104,14 @@ fun SprintView(project: Project) {
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(items = sprintIssues, key = { it.id }) { issue ->
-                        IssueCard(issue = issue, expandable = true)
+                        IssueCard(
+                            issue = issue,
+                            expandable = true,
+                            onOpenDetailTab = { selectedIssue ->
+                                tabService.openIssueDetailTab(selectedIssue)
+                            },
+                            isDirty = dirtyIssueIds.contains(issue.id)
+                        )
                     }
                 }
             }

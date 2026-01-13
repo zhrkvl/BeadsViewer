@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.intellij.openapi.project.Project
 import me.zkvl.beadsviewer.model.Issue
+import me.zkvl.beadsviewer.service.IssueDetailTabService
 import me.zkvl.beadsviewer.service.IssueService
 import me.zkvl.beadsviewer.ui.components.IssueCard
 import me.zkvl.beadsviewer.ui.theme.BeadsTheme
@@ -25,6 +26,7 @@ import kotlinx.datetime.toLocalDateTime
 @Composable
 fun HistoryView(project: Project) {
     val issueService = remember { IssueService.getInstance(project) }
+    val tabService = remember { IssueDetailTabService.getInstance(project) }
     val issuesState by issueService.issuesState.collectAsState()
 
     when (val state = issuesState) {
@@ -42,6 +44,7 @@ fun HistoryView(project: Project) {
         }
         is IssueService.IssuesState.Loaded -> {
             val issues = state.issues
+            val dirtyIssueIds = state.dirtyIssueIds
             val colors = BeadsTheme.colors
 
             // Sort by created date (most recent first)
@@ -69,7 +72,14 @@ fun HistoryView(project: Project) {
                                 color = colors.onSurfaceDisabled,
                                 modifier = Modifier.padding(bottom = 4.dp)
                             )
-                            IssueCard(issue = issue, expandable = true)
+                            IssueCard(
+                                issue = issue,
+                                expandable = true,
+                                onOpenDetailTab = { selectedIssue ->
+                                    tabService.openIssueDetailTab(selectedIssue)
+                                },
+                                isDirty = dirtyIssueIds.contains(issue.id)
+                            )
                         }
                     }
                 }

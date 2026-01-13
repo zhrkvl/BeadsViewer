@@ -3,7 +3,7 @@ package me.zkvl.beadsviewer.parser
 import java.nio.file.Path
 
 /**
- * Base exception for JSONL parsing errors.
+ * Base exception for parsing errors (JSONL and SQLite).
  *
  * This sealed class hierarchy provides specific exception types for different
  * parsing failures, making error handling more precise and user-friendly.
@@ -59,6 +59,48 @@ sealed class ParseException(message: String, cause: Throwable? = null) : Excepti
         cause: Throwable
     ) : ParseException(
         "Validation failed for issue $issueId: ${cause.message}",
+        cause
+    )
+
+    /**
+     * Thrown when there's an error connecting to or reading from the SQLite database.
+     *
+     * This could be due to:
+     * - Database file missing
+     * - Database file corrupted
+     * - Database locked by another process
+     * - SQL query errors
+     * - Schema mismatches
+     */
+    class SqlError(
+        val file: Path,
+        val operation: String,
+        cause: Throwable
+    ) : ParseException(
+        "SQLite error during $operation on $file: ${cause.message}",
+        cause
+    )
+
+    /**
+     * Thrown when the database schema doesn't match expected structure.
+     *
+     * This can happen with:
+     * - Legacy databases with old schema
+     * - Corrupted database files
+     * - Missing required tables or columns
+     */
+    class SchemaError(
+        val file: Path,
+        val expectedTable: String? = null,
+        val expectedColumn: String? = null,
+        cause: Throwable
+    ) : ParseException(
+        buildString {
+            append("Schema mismatch in $file")
+            if (expectedTable != null) append(": table '$expectedTable' not found or invalid")
+            if (expectedColumn != null) append(": column '$expectedColumn' not found or invalid")
+            append(": ${cause.message}")
+        },
         cause
     )
 }

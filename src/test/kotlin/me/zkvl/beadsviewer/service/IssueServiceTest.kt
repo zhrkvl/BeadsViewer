@@ -52,17 +52,17 @@ class IssueServiceTest : BasePlatformTestCase() {
     }
 
     /**
-     * Test that getIssuesFilePath returns expected path.
+     * Test that getBeadsDir returns expected path.
      */
-    fun testGetIssuesFilePath() {
+    fun testGetBeadsDir() {
         val service = IssueService.getInstance(project)
-        val path = service.getIssuesFilePath()
+        val path = service.getBeadsDir()
 
         if (project.basePath != null) {
             Assert.assertNotNull("Path should not be null when project has basePath", path)
             Assert.assertTrue(
-                "Path should end with .beads/issues.jsonl",
-                path?.toString()?.endsWith(".beads/issues.jsonl") == true
+                "Path should end with .beads",
+                path?.toString()?.endsWith(".beads") == true
             )
         }
     }

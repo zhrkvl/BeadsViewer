@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.sp
 import com.intellij.openapi.project.Project
 import me.zkvl.beadsviewer.model.Issue
 import me.zkvl.beadsviewer.model.Status
+import me.zkvl.beadsviewer.service.IssueDetailTabService
 import me.zkvl.beadsviewer.service.IssueService
 import me.zkvl.beadsviewer.ui.components.IssueCard
 import me.zkvl.beadsviewer.ui.theme.BeadsTheme
@@ -24,6 +25,7 @@ import org.jetbrains.jewel.ui.component.Text
 fun AttentionView(project: Project) {
     val colors = BeadsTheme.colors
     val issueService = remember { IssueService.getInstance(project) }
+    val tabService = remember { IssueDetailTabService.getInstance(project) }
     val issuesState by issueService.issuesState.collectAsState()
 
     when (val state = issuesState) {
@@ -41,6 +43,7 @@ fun AttentionView(project: Project) {
         }
         is IssueService.IssuesState.Loaded -> {
             val issues = state.issues
+            val dirtyIssueIds = state.dirtyIssueIds
 
             // Filter issues needing attention
             val attentionIssues = issues.filter { issue ->
@@ -66,7 +69,15 @@ fun AttentionView(project: Project) {
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(items = attentionIssues, key = { it.id }) { issue ->
-                            IssueCard(issue = issue, expandable = true, initiallyExpanded = true)
+                            IssueCard(
+                                issue = issue,
+                                expandable = true,
+                                initiallyExpanded = true,
+                                onOpenDetailTab = { selectedIssue ->
+                                    tabService.openIssueDetailTab(selectedIssue)
+                                },
+                                isDirty = dirtyIssueIds.contains(issue.id)
+                            )
                         }
                     }
                 }

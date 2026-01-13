@@ -12,18 +12,27 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.zkvl.beadsviewer.model.Issue
 import me.zkvl.beadsviewer.ui.theme.BeadsTheme
+import org.jetbrains.jewel.ui.component.Link
 import org.jetbrains.jewel.ui.component.Text
 
 /**
  * Reusable issue card component.
  * Displays an issue with its ID, title, status, priority, and expandable details.
+ *
+ * @param issue The issue to display
+ * @param modifier Modifier for the card container
+ * @param expandable Whether the card can be clicked to expand/collapse
+ * @param initiallyExpanded Initial expansion state
+ * @param isDirty Whether this issue has unsaved changes (not yet synced to git)
  */
 @Composable
 fun IssueCard(
     issue: Issue,
     modifier: Modifier = Modifier,
     expandable: Boolean = true,
-    initiallyExpanded: Boolean = false
+    initiallyExpanded: Boolean = false,
+    onOpenDetailTab: ((Issue) -> Unit)? = null,
+    isDirty: Boolean = false
 ) {
     val colors = BeadsTheme.colors
     var expanded by remember { mutableStateOf(initiallyExpanded) }
@@ -69,6 +78,11 @@ fun IssueCard(
 
             // Status indicator
             StatusBadge(issue.status.name)
+
+            // Dirty sync indicator (if issue not synced to git)
+            if (isDirty) {
+                DirtySyncBadge()
+            }
         }
 
         // Expanded details
@@ -103,14 +117,26 @@ fun IssueCard(
                 )
             }
 
-            // Dependencies
+            // Dependencies with Open link
             if (issue.dependencies.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    "Dependencies: ${issue.dependencies.size}",
-                    fontSize = 11.sp,
-                    color = colors.onSurfaceDisabled
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Dependencies: ${issue.dependencies.size}",
+                        fontSize = 11.sp,
+                        color = colors.onSurfaceDisabled
+                    )
+                    if (onOpenDetailTab != null) {
+                        Text("•", fontSize = 11.sp, color = colors.onSurfaceDisabled)
+                        Link(
+                            text = "Open",
+                            onClick = { onOpenDetailTab(issue) }
+                        )
+                    }
+                }
             }
         }
     }

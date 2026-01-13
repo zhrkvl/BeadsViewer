@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.sp
 import com.intellij.openapi.project.Project
 import me.zkvl.beadsviewer.model.Issue
 import me.zkvl.beadsviewer.query.service.QueryFilterService
+import me.zkvl.beadsviewer.service.IssueDetailTabService
 import me.zkvl.beadsviewer.service.IssueService
 import me.zkvl.beadsviewer.ui.components.IssueCard
 import me.zkvl.beadsviewer.ui.theme.BeadsTheme
@@ -26,9 +27,16 @@ fun ListView(project: Project) {
     val colors = BeadsTheme.colors
     val issueService = remember { IssueService.getInstance(project) }
     val queryFilterService = remember { QueryFilterService.getInstance(project) }
+    val tabService = remember { IssueDetailTabService.getInstance(project) }
 
     val issuesState by issueService.issuesState.collectAsState()
     val filteredState by queryFilterService.filteredState.collectAsState()
+
+    // Extract dirty issue IDs from loaded state
+    val dirtyIssueIds = when (val state = issuesState) {
+        is IssueService.IssuesState.Loaded -> state.dirtyIssueIds
+        else -> emptySet()
+    }
 
     // Determine base issues: filtered or all
     val baseIssues = when {
@@ -85,7 +93,13 @@ fun ListView(project: Project) {
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(items = issues, key = { it.id }) { issue ->
-                            IssueCard(issue = issue)
+                            IssueCard(
+                                issue = issue,
+                                onOpenDetailTab = { selectedIssue ->
+                                    tabService.openIssueDetailTab(selectedIssue)
+                                },
+                                isDirty = dirtyIssueIds.contains(issue.id)
+                            )
                         }
                     }
                 }

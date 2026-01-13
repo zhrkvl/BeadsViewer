@@ -43,7 +43,7 @@ class PerformanceTest {
         val elapsedMs1 = System.currentTimeMillis() - startTime1
 
         assertTrue(result1.isSuccess)
-        val issueCount = result1.getOrNull()?.size ?: 0
+        val issueCount = result1.getOrNull()?.issues?.size ?: 0
         assertTrue(issueCount >= 900, "Expected ~980 issues, got $issueCount")
 
         // Second load (cache hit)
