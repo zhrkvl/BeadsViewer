@@ -23,6 +23,7 @@ import me.zkvl.beadsviewer.service.IssueService
 import me.zkvl.beadsviewer.ui.components.EditableTextField
 import me.zkvl.beadsviewer.ui.components.PriorityBadge
 import me.zkvl.beadsviewer.ui.components.StatusBadge
+import me.zkvl.beadsviewer.ui.theme.BeadsTheme
 import org.jetbrains.jewel.ui.component.DefaultButton
 import org.jetbrains.jewel.ui.component.Text
 
@@ -155,6 +156,7 @@ fun IssueDetailView(
 
 @Composable
 private fun IssueHeaderSection(issue: Issue) {
+    val colors = BeadsTheme.colors
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -165,19 +167,19 @@ private fun IssueHeaderSection(issue: Issue) {
         Text(
             text = issue.id,
             fontSize = 16.sp,
-            color = androidx.compose.ui.graphics.Color(0xFF888888)
+            color = colors.onSurfaceDisabled
         )
 
         Text(
             text = "•",
             fontSize = 16.sp,
-            color = androidx.compose.ui.graphics.Color(0xFF888888)
+            color = colors.onSurfaceDisabled
         )
 
         Text(
             text = issue.issueType.value,
             fontSize = 16.sp,
-            color = androidx.compose.ui.graphics.Color(0xFF888888)
+            color = colors.onSurfaceDisabled
         )
 
         Spacer(Modifier.weight(1f))
@@ -188,17 +190,19 @@ private fun IssueHeaderSection(issue: Issue) {
 
 @Composable
 private fun TitleSection(issue: Issue) {
+    val colors = BeadsTheme.colors
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             text = issue.title,
             fontSize = 20.sp,
-            color = androidx.compose.ui.graphics.Color(0xFFFFFFFF)
+            color = colors.onPrimary
         )
     }
 }
 
 @Composable
 private fun MetadataSection(project: Project, issue: Issue) {
+    val colors = BeadsTheme.colors
     val commandService = remember { BeadsCommandService.getInstance(project) }
     val scope = rememberCoroutineScope()
 
@@ -206,7 +210,7 @@ private fun MetadataSection(project: Project, issue: Issue) {
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                color = androidx.compose.ui.graphics.Color(0x08FFFFFF),
+                color = colors.surfaceHover,
                 shape = RoundedCornerShape(8.dp)
             )
             .padding(12.dp),
@@ -290,6 +294,7 @@ private fun MetadataSection(project: Project, issue: Issue) {
 
 @Composable
 private fun MetadataRow(label: String, value: String) {
+    val colors = BeadsTheme.colors
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.fillMaxWidth()
@@ -297,33 +302,34 @@ private fun MetadataRow(label: String, value: String) {
         Text(
             text = "$label:",
             fontSize = 12.sp,
-            color = androidx.compose.ui.graphics.Color(0xFF888888),
+            color = colors.onSurfaceDisabled,
             modifier = Modifier.width(120.dp)
         )
         Text(
             text = value,
             fontSize = 12.sp,
-            color = androidx.compose.ui.graphics.Color(0xFFCCCCCC)
+            color = colors.onSurface
         )
     }
 }
 
 @Composable
 private fun FieldSection(label: String, content: String) {
+    val colors = BeadsTheme.colors
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = label,
             fontSize = 14.sp,
-            color = androidx.compose.ui.graphics.Color(0xFF888888)
+            color = colors.onSurfaceDisabled
         )
         Text(
             text = content,
             fontSize = 13.sp,
-            color = androidx.compose.ui.graphics.Color(0xFFCCCCCC),
+            color = colors.onSurface,
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    color = androidx.compose.ui.graphics.Color(0x08FFFFFF),
+                    color = colors.surfaceHover,
                     shape = RoundedCornerShape(8.dp)
                 )
                 .padding(12.dp)
@@ -333,18 +339,19 @@ private fun FieldSection(label: String, content: String) {
 
 @Composable
 private fun DependenciesSection(issue: Issue) {
+    val colors = BeadsTheme.colors
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = "Dependencies (${issue.dependencies.size})",
             fontSize = 14.sp,
-            color = androidx.compose.ui.graphics.Color(0xFF888888)
+            color = colors.onSurfaceDisabled
         )
 
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    color = androidx.compose.ui.graphics.Color(0x08FFFFFF),
+                    color = colors.surfaceHover,
                     shape = RoundedCornerShape(8.dp)
                 )
                 .padding(12.dp),
@@ -358,13 +365,13 @@ private fun DependenciesSection(issue: Issue) {
                     Text(
                         text = dependency.type.value,
                         fontSize = 11.sp,
-                        color = androidx.compose.ui.graphics.Color(0xFF888888),
+                        color = colors.onSurfaceDisabled,
                         modifier = Modifier.width(80.dp)
                     )
                     Text(
                         text = dependency.dependsOnId,
                         fontSize = 12.sp,
-                        color = androidx.compose.ui.graphics.Color(0xFFCCCCCC)
+                        color = colors.onSurface
                     )
                 }
             }
@@ -374,6 +381,7 @@ private fun DependenciesSection(issue: Issue) {
 
 @Composable
 private fun CommentsSection(project: Project, issue: Issue) {
+    val colors = BeadsTheme.colors
     val commandService = remember { BeadsCommandService.getInstance(project) }
     val scope = rememberCoroutineScope()
     var isAddingComment by remember { mutableStateOf(false) }
@@ -384,7 +392,7 @@ private fun CommentsSection(project: Project, issue: Issue) {
         Text(
             text = "Comments (${issue.comments.size})",
             fontSize = 14.sp,
-            color = androidx.compose.ui.graphics.Color(0xFF888888)
+            color = colors.onSurfaceDisabled
         )
 
         // Existing comments
@@ -397,7 +405,7 @@ private fun CommentsSection(project: Project, issue: Issue) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(
-                            color = androidx.compose.ui.graphics.Color(0x08FFFFFF),
+                            color = colors.surfaceHover,
                             shape = RoundedCornerShape(8.dp)
                         )
                         .padding(12.dp),
@@ -410,23 +418,23 @@ private fun CommentsSection(project: Project, issue: Issue) {
                         Text(
                             text = comment.author,
                             fontSize = 12.sp,
-                            color = androidx.compose.ui.graphics.Color(0xFF888888)
+                            color = colors.onSurfaceDisabled
                         )
                         Text(
                             text = "•",
                             fontSize = 11.sp,
-                            color = androidx.compose.ui.graphics.Color(0xFF888888)
+                            color = colors.onSurfaceDisabled
                         )
                         Text(
                             text = comment.createdAt.toLocalDateTime(TimeZone.currentSystemDefault()).toString(),
                             fontSize = 11.sp,
-                            color = androidx.compose.ui.graphics.Color(0xFF888888)
+                            color = colors.onSurfaceDisabled
                         )
                     }
                     Text(
                         text = comment.text,
                         fontSize = 12.sp,
-                        color = androidx.compose.ui.graphics.Color(0xFFCCCCCC)
+                        color = colors.onSurface
                     )
                 }
             }
@@ -445,12 +453,12 @@ private fun CommentsSection(project: Project, issue: Issue) {
                         .fillMaxWidth()
                         .heightIn(min = 80.dp)
                         .background(
-                            androidx.compose.ui.graphics.Color(0x10FFFFFF),
+                            colors.surfaceSelected,
                             RoundedCornerShape(8.dp)
                         )
                         .padding(12.dp),
                     textStyle = TextStyle(
-                        color = androidx.compose.ui.graphics.Color(0xFFCCCCCC),
+                        color = colors.onSurface,
                         fontSize = 13.sp
                     )
                 )
@@ -496,11 +504,12 @@ private fun CommentsSection(project: Project, issue: Issue) {
 
 @Composable
 private fun LabelsSection(issue: Issue) {
+    val colors = BeadsTheme.colors
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = "Labels",
             fontSize = 14.sp,
-            color = androidx.compose.ui.graphics.Color(0xFF888888)
+            color = colors.onSurfaceDisabled
         )
 
         Row(
@@ -511,10 +520,10 @@ private fun LabelsSection(issue: Issue) {
                 Text(
                     text = label,
                     fontSize = 11.sp,
-                    color = androidx.compose.ui.graphics.Color(0xFFCCCCCC),
+                    color = colors.onSurface,
                     modifier = Modifier
                         .background(
-                            color = androidx.compose.ui.graphics.Color(0x18FFFFFF),
+                            color = colors.surfaceHover,
                             shape = RoundedCornerShape(4.dp)
                         )
                         .padding(horizontal = 8.dp, vertical = 4.dp)
@@ -532,6 +541,7 @@ private fun EditableMetadataRow(
     issueId: String,
     onSave: (String) -> Unit
 ) {
+    val colors = BeadsTheme.colors
     var isEditing by remember { mutableStateOf(false) }
     var editValue by remember(value) { mutableStateOf(value) }
 
@@ -543,7 +553,7 @@ private fun EditableMetadataRow(
         Text(
             text = "$label:",
             fontSize = 12.sp,
-            color = androidx.compose.ui.graphics.Color(0xFF888888),
+            color = colors.onSurfaceDisabled,
             modifier = Modifier.width(120.dp)
         )
 
@@ -559,12 +569,12 @@ private fun EditableMetadataRow(
                     modifier = Modifier
                         .weight(1f)
                         .background(
-                            androidx.compose.ui.graphics.Color(0x10FFFFFF),
+                            colors.surfaceSelected,
                             RoundedCornerShape(4.dp)
                         )
                         .padding(4.dp),
                     textStyle = TextStyle(
-                        color = androidx.compose.ui.graphics.Color(0xFFCCCCCC),
+                        color = colors.onSurface,
                         fontSize = 12.sp
                     ),
                     singleLine = true
@@ -590,7 +600,7 @@ private fun EditableMetadataRow(
             Text(
                 text = value,
                 fontSize = 12.sp,
-                color = androidx.compose.ui.graphics.Color(0xFFCCCCCC),
+                color = colors.onSurface,
                 modifier = Modifier
                     .clickable { isEditing = true }
                     .weight(1f)
@@ -601,11 +611,12 @@ private fun EditableMetadataRow(
 
 @Composable
 private fun AdditionalMetadataSection(issue: Issue) {
+    val colors = BeadsTheme.colors
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                color = androidx.compose.ui.graphics.Color(0x08FFFFFF),
+                color = colors.surfaceHover,
                 shape = RoundedCornerShape(8.dp)
             )
             .padding(12.dp),
