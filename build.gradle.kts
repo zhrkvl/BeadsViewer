@@ -30,6 +30,9 @@ dependencies {
     // kotlinx-datetime for type-safe date/time handling
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.0")
 
+    // SQLite JDBC driver for reading .beads/beads.db database
+    implementation("org.xerial:sqlite-jdbc:3.47.2.0")
+
     // Test dependencies
     testImplementation(kotlin("test"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.1")
