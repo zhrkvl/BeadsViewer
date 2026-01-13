@@ -7,7 +7,9 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -27,6 +29,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.jetbrains.jewel.ui.component.DefaultButton
 import org.jetbrains.jewel.ui.component.Dropdown
+import org.jetbrains.jewel.ui.component.Icon
+import org.jetbrains.jewel.ui.component.IconButton
 import com.intellij.openapi.project.Project
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -115,103 +119,134 @@ fun GraphView(project: Project) {
                         Text("No issues with dependencies found")
                     }
                 } else {
-                    // Control panel
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Layout selector
-                        Text("Layout:", fontSize = 12.sp)
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            DefaultButton(
-                                onClick = { graphViewModel.setLayoutAlgorithm(LayoutAlgorithm.HIERARCHICAL) },
-                                modifier = Modifier.height(28.dp)
+                    Row(modifier = Modifier.fillMaxSize()) {
+                        // Main graph area
+                        Column(modifier = Modifier.weight(1f)) {
+                            // Control panel
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 8.dp)
                             ) {
-                                Text(
-                                    "Hierarchical",
-                                    fontSize = 11.sp,
-                                    color = if (graphState.layoutAlgorithm == LayoutAlgorithm.HIERARCHICAL) Color(0xFF3498DB) else Color.Unspecified
-                                )
-                            }
-                            DefaultButton(
-                                onClick = { graphViewModel.setLayoutAlgorithm(LayoutAlgorithm.FORCE_DIRECTED) },
-                                modifier = Modifier.height(28.dp)
-                            ) {
-                                Text(
-                                    "Force-Directed",
-                                    fontSize = 11.sp,
-                                    color = if (graphState.layoutAlgorithm == LayoutAlgorithm.FORCE_DIRECTED) Color(0xFF3498DB) else Color.Unspecified
-                                )
-                            }
-                            DefaultButton(
-                                onClick = { graphViewModel.setLayoutAlgorithm(LayoutAlgorithm.CIRCULAR) },
-                                modifier = Modifier.height(28.dp)
-                            ) {
-                                Text(
-                                    "Circular",
-                                    fontSize = 11.sp,
-                                    color = if (graphState.layoutAlgorithm == LayoutAlgorithm.CIRCULAR) Color(0xFF3498DB) else Color.Unspecified
-                                )
-                            }
-                        }
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Layout selector
+                                    Text("Layout:", fontSize = 12.sp)
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        DefaultButton(
+                                            onClick = { graphViewModel.setLayoutAlgorithm(LayoutAlgorithm.HIERARCHICAL) },
+                                            modifier = Modifier.height(28.dp)
+                                        ) {
+                                            Text(
+                                                "Hierarchical",
+                                                fontSize = 11.sp,
+                                                color = if (graphState.layoutAlgorithm == LayoutAlgorithm.HIERARCHICAL) Color(0xFF3498DB) else Color.Unspecified
+                                            )
+                                        }
+                                        DefaultButton(
+                                            onClick = { graphViewModel.setLayoutAlgorithm(LayoutAlgorithm.FORCE_DIRECTED) },
+                                            modifier = Modifier.height(28.dp)
+                                        ) {
+                                            Text(
+                                                "Force-Directed",
+                                                fontSize = 11.sp,
+                                                color = if (graphState.layoutAlgorithm == LayoutAlgorithm.FORCE_DIRECTED) Color(0xFF3498DB) else Color.Unspecified
+                                            )
+                                        }
+                                        DefaultButton(
+                                            onClick = { graphViewModel.setLayoutAlgorithm(LayoutAlgorithm.CIRCULAR) },
+                                            modifier = Modifier.height(28.dp)
+                                        ) {
+                                            Text(
+                                                "Circular",
+                                                fontSize = 11.sp,
+                                                color = if (graphState.layoutAlgorithm == LayoutAlgorithm.CIRCULAR) Color(0xFF3498DB) else Color.Unspecified
+                                            )
+                                        }
+                                    }
 
-                        Spacer(modifier = Modifier.width(16.dp))
+                                    Spacer(modifier = Modifier.width(16.dp))
 
-                        // Visual options
-                        DefaultButton(
-                            onClick = { graphViewModel.toggleLabels() },
-                            modifier = Modifier.height(28.dp)
-                        ) {
-                            Text(
-                                if (graphState.showLabels) "Hide Labels" else "Show Labels",
-                                fontSize = 11.sp
-                            )
-                        }
+                                    // Visual options
+                                    DefaultButton(
+                                        onClick = { graphViewModel.toggleLabels() },
+                                        modifier = Modifier.height(28.dp)
+                                    ) {
+                                        Text(
+                                            if (graphState.showLabels) "Hide Labels" else "Show Labels",
+                                            fontSize = 11.sp
+                                        )
+                                    }
 
-                        DefaultButton(
-                            onClick = {
-                                val nextStyle = when (graphState.edgeStyle) {
-                                    EdgeStyle.BY_TYPE -> EdgeStyle.BY_BLOCKING
-                                    EdgeStyle.BY_BLOCKING -> EdgeStyle.UNIFORM
-                                    EdgeStyle.UNIFORM -> EdgeStyle.BY_TYPE
+                                    DefaultButton(
+                                        onClick = {
+                                            val nextStyle = when (graphState.edgeStyle) {
+                                                EdgeStyle.BY_TYPE -> EdgeStyle.BY_BLOCKING
+                                                EdgeStyle.BY_BLOCKING -> EdgeStyle.UNIFORM
+                                                EdgeStyle.UNIFORM -> EdgeStyle.BY_TYPE
+                                            }
+                                            graphViewModel.setEdgeStyle(nextStyle)
+                                        },
+                                        modifier = Modifier.height(28.dp)
+                                    ) {
+                                        Text(
+                                            "Edges: ${graphState.edgeStyle.name.lowercase().replace('_', ' ')}",
+                                            fontSize = 11.sp
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.weight(1f))
+
+                                    // Reset view button
+                                    DefaultButton(
+                                        onClick = { graphViewModel.resetView() },
+                                        modifier = Modifier.height(28.dp)
+                                    ) {
+                                        Text("Reset View", fontSize = 11.sp)
+                                    }
+
+                                    // Zoom indicator
+                                    Text(
+                                        "Zoom: ${(graphState.zoom * 100).toInt()}%",
+                                        fontSize = 11.sp,
+                                        modifier = Modifier.padding(start = 8.dp)
+                                    )
                                 }
-                                graphViewModel.setEdgeStyle(nextStyle)
-                            },
-                            modifier = Modifier.height(28.dp)
-                        ) {
-                            Text(
-                                "Edges: ${graphState.edgeStyle.name.lowercase().replace('_', ' ')}",
-                                fontSize = 11.sp
+
+                                // Interaction hint
+                                Text(
+                                    "Drag nodes to move • Drag background to pan • Scroll to zoom • Click node for details",
+                                    fontSize = 10.sp,
+                                    color = Color.Gray,
+                                    modifier = Modifier.padding(bottom = 4.dp)
+                                )
+                            }
+
+                            // Graph canvas
+                            DependencyGraphCanvas(
+                                issues = issues,
+                                graphState = graphState,
+                                graphViewModel = graphViewModel
                             )
                         }
 
-                        Spacer(modifier = Modifier.weight(1f))
-
-                        // Reset view button
-                        DefaultButton(
-                            onClick = { graphViewModel.resetView() },
-                            modifier = Modifier.height(28.dp)
-                        ) {
-                            Text("Reset View", fontSize = 11.sp)
+                        // Side panel for selected issue info
+                        if (graphState.selectedNodeId != null) {
+                            val selectedIssue = issues.find { it.id == graphState.selectedNodeId }
+                            if (selectedIssue != null) {
+                                IssueInfoPanel(
+                                    issue = selectedIssue,
+                                    onClose = { graphViewModel.selectNode(null) },
+                                    modifier = Modifier.width(350.dp)
+                                )
+                            }
                         }
-
-                        // Zoom indicator
-                        Text(
-                            "Zoom: ${(graphState.zoom * 100).toInt()}%",
-                            fontSize = 11.sp,
-                            modifier = Modifier.padding(start = 8.dp)
-                        )
                     }
-
-                    // Graph canvas
-                    DependencyGraphCanvas(
-                        issues = issues,
-                        graphState = graphState,
-                        graphViewModel = graphViewModel
-                    )
                 }
             }
         }
@@ -580,6 +615,158 @@ private fun DrawScope.drawArrow(from: Offset, to: Offset, color: Color, arrowSiz
 }
 
 /**
+ * Info panel showing details of selected issue.
+ */
+@Composable
+private fun IssueInfoPanel(
+    issue: Issue,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = BeadsTheme.colors
+
+    Column(
+        modifier = modifier
+            .fillMaxHeight()
+            .background(colors.surfaceHover)
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
+        // Header with close button
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Issue Details", fontSize = 16.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+            DefaultButton(onClick = onClose, modifier = Modifier.size(28.dp)) {
+                Text("×", fontSize = 18.sp)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // ID
+        Text("ID", fontSize = 11.sp, color = Color.Gray)
+        Text(issue.id, fontSize = 13.sp, modifier = Modifier.padding(bottom = 12.dp))
+
+        // Title
+        Text("Title", fontSize = 11.sp, color = Color.Gray)
+        Text(issue.title, fontSize = 13.sp, modifier = Modifier.padding(bottom = 12.dp))
+
+        // Status
+        Text("Status", fontSize = 11.sp, color = Color.Gray)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(bottom = 12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .background(
+                        color = when (issue.status) {
+                            Status.BLOCKED -> Color(0xFFE74C3C)
+                            Status.IN_PROGRESS -> Color(0xFF3498DB)
+                            Status.CLOSED -> Color(0xFF95A5A6)
+                            Status.HOOKED -> Color(0xFFF39C12)
+                            Status.TOMBSTONE -> Color(0xFF7F8C8D)
+                            Status.OPEN -> Color(0xFF2ECC71)
+                        },
+                        shape = RoundedCornerShape(4.dp)
+                    )
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Text(issue.status.name, fontSize = 11.sp, color = Color.White)
+            }
+        }
+
+        // Priority
+        Text("Priority", fontSize = 11.sp, color = Color.Gray)
+        Text("P${issue.priority}", fontSize = 13.sp, modifier = Modifier.padding(bottom = 12.dp))
+
+        // Type
+        Text("Type", fontSize = 11.sp, color = Color.Gray)
+        Text(issue.issueType.value, fontSize = 13.sp, modifier = Modifier.padding(bottom = 12.dp))
+
+        // Description
+        if (issue.description.isNotBlank()) {
+            Text("Description", fontSize = 11.sp, color = Color.Gray)
+            Text(
+                issue.description,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+        }
+
+        // Assignee
+        if (issue.assignee != null) {
+            Text("Assignee", fontSize = 11.sp, color = Color.Gray)
+            Text(issue.assignee!!, fontSize = 13.sp, modifier = Modifier.padding(bottom = 12.dp))
+        }
+
+        // Labels
+        if (issue.labels.isNotEmpty()) {
+            Text("Labels", fontSize = 11.sp, color = Color.Gray)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.padding(bottom = 12.dp)
+            ) {
+                issue.labels.forEach { label ->
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFF34495E), shape = RoundedCornerShape(4.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(label, fontSize = 10.sp, color = Color.White)
+                    }
+                }
+            }
+        }
+
+        // Dependencies
+        if (issue.dependencies.isNotEmpty()) {
+            Text("Dependencies (${issue.dependencies.size})", fontSize = 11.sp, color = Color.Gray)
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.padding(bottom = 12.dp)
+            ) {
+                issue.dependencies.forEach { dep ->
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .background(
+                                    color = when (dep.type) {
+                                        is DependencyType.Blocks -> Color(0xFFE74C3C)
+                                        is DependencyType.ParentChild -> Color(0xFF3498DB)
+                                        is DependencyType.Related -> Color(0xFF95A5A6)
+                                        else -> Color(0xFF95A5A6)
+                                    },
+                                    shape = RoundedCornerShape(50)
+                                )
+                        )
+                        Text(
+                            "${dep.type.value}: ${dep.dependsOnId}",
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+            }
+        }
+
+        // Created
+        Text("Created", fontSize = 11.sp, color = Color.Gray)
+        Text(
+            issue.createdAt.toString().take(19).replace('T', ' '),
+            fontSize = 11.sp,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+    }
+}
+
+/**
  * Transform screen coordinates to graph coordinates.
  */
 private fun screenToGraph(screenPos: Offset, graphState: GraphState): Offset {
@@ -660,6 +847,11 @@ private fun DependencyGraphCanvas(
             .height(600.dp)
             .background(colors.surfaceHover)
             .clipToBounds() // Prevent overflow
+            .pointerHoverIcon(
+                if (graphState.draggedNodeId != null) PointerIcon.Hand
+                else if (graphState.hoveredNodeId != null) PointerIcon.Hand
+                else PointerIcon.Default
+            )
             // Hover detection and click handling
             .pointerInput(Unit) {
                 awaitPointerEventScope {
