@@ -49,6 +49,19 @@ fun ViewModeToolbar(
         mutableStateOf(TextFieldValue(text = saved ?: "", selection = TextRange.Zero))
     }
 
+    // Auto-apply default query on first load for LIST view
+    LaunchedEffect(currentMode) {
+        val currentQuery = queryStateService.getQueryForView(currentMode)
+        if (currentQuery != null && currentMode == ViewMode.LIST) {
+            // Check if this is a default query that hasn't been explicitly saved
+            val explicitlySaved = queryStateService.getState().viewQueries.containsKey(currentMode.name)
+            if (!explicitlySaved) {
+                // Apply the default query automatically
+                queryFilterService.setQuery(currentQuery)
+            }
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxWidth()

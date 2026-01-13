@@ -69,10 +69,18 @@ class QueryStateService : PersistentStateComponent<QueryStateService.State> {
      * Get the current query for a view mode.
      *
      * @param viewMode The view mode to get the query for
-     * @return The query string, or null if no query is set for this view
+     * @return The query string, or null if no query is set for this view.
+     *         For LIST view, returns the default query if no query is saved.
      */
     fun getQueryForView(viewMode: ViewMode): String? {
-        return myState.viewQueries[viewMode.name]
+        val savedQuery = myState.viewQueries[viewMode.name]
+
+        // Return default query for LIST mode if no query is saved
+        if (savedQuery == null && viewMode == ViewMode.LIST) {
+            return DEFAULT_LIST_QUERY
+        }
+
+        return savedQuery
     }
 
     /**
@@ -161,6 +169,11 @@ class QueryStateService : PersistentStateComponent<QueryStateService.State> {
          * Maximum number of queries to keep in history.
          */
         private const val MAX_HISTORY_SIZE = 50
+
+        /**
+         * Default query shown when LIST view is first opened.
+         */
+        const val DEFAULT_LIST_QUERY = "status:open AND priority:0"
 
         /**
          * Gets the QueryStateService instance for a project.
