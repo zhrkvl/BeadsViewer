@@ -10,8 +10,13 @@ import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.ui.content.Content
 import me.zkvl.beadsviewer.Icons
 import me.zkvl.beadsviewer.model.Issue
+import me.zkvl.beadsviewer.state.ThemeStateService
+import me.zkvl.beadsviewer.ui.theme.BeadsTheme
 import me.zkvl.beadsviewer.ui.views.IssueDetailView
 import org.jetbrains.jewel.bridge.JewelComposePanel
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 
 /**
  * Project-level service managing issue detail tabs.
@@ -57,7 +62,14 @@ class IssueDetailTabService(private val project: Project) : Disposable {
 
         // Create new tab with Compose content using JewelComposePanel for proper theming
         val composePanel = JewelComposePanel {
-            IssueDetailView(project = project, initialIssue = issue)
+            // Get theme service and observe theme mode (same pattern as BeadsToolWindow)
+            val themeService = remember { ThemeStateService.getInstance(project) }
+            val themeMode by themeService.themeModeFlow.collectAsState()
+
+            // Wrap with BeadsTheme to provide theme context
+            BeadsTheme(themeMode = themeMode) {
+                IssueDetailView(project = project, initialIssue = issue)
+            }
         }
 
         val content = contentManager.factory.createContent(
