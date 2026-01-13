@@ -41,6 +41,7 @@ fun AttentionView(project: Project) {
         }
         is IssueService.IssuesState.Loaded -> {
             val issues = state.issues
+            val dirtyIssueIds = state.dirtyIssueIds
 
             // Filter issues needing attention
             val attentionIssues = issues.filter { issue ->
@@ -71,7 +72,8 @@ fun AttentionView(project: Project) {
                                 initiallyExpanded = true,
                                 onOpenDetailTab = { selectedIssue ->
                                     tabService.openIssueDetailTab(selectedIssue)
-                                }
+                                },
+                                isDirty = dirtyIssueIds.contains(issue.id)
                             )
                         }
                     }

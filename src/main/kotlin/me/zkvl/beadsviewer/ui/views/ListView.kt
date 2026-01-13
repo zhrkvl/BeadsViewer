@@ -30,6 +30,12 @@ fun ListView(project: Project) {
     val issuesState by issueService.issuesState.collectAsState()
     val filteredState by queryFilterService.filteredState.collectAsState()
 
+    // Extract dirty issue IDs from loaded state
+    val dirtyIssueIds = when (val state = issuesState) {
+        is IssueService.IssuesState.Loaded -> state.dirtyIssueIds
+        else -> emptySet()
+    }
+
     // Determine base issues: filtered or all
     val baseIssues = when {
         filteredState is QueryFilterService.FilteredIssuesState.Filtered ->
@@ -88,7 +94,8 @@ fun ListView(project: Project) {
                                 issue = issue,
                                 onOpenDetailTab = { selectedIssue ->
                                     tabService.openIssueDetailTab(selectedIssue)
-                                }
+                                },
+                                isDirty = dirtyIssueIds.contains(issue.id)
                             )
                         }
                     }

@@ -18,6 +18,12 @@ import org.jetbrains.jewel.ui.component.Text
 /**
  * Reusable issue card component.
  * Displays an issue with its ID, title, status, priority, and expandable details.
+ *
+ * @param issue The issue to display
+ * @param modifier Modifier for the card container
+ * @param expandable Whether the card can be clicked to expand/collapse
+ * @param initiallyExpanded Initial expansion state
+ * @param isDirty Whether this issue has unsaved changes (not yet synced to git)
  */
 @Composable
 fun IssueCard(
@@ -25,7 +31,8 @@ fun IssueCard(
     modifier: Modifier = Modifier,
     expandable: Boolean = true,
     initiallyExpanded: Boolean = false,
-    onOpenDetailTab: ((Issue) -> Unit)? = null
+    onOpenDetailTab: ((Issue) -> Unit)? = null,
+    isDirty: Boolean = false
 ) {
     val colors = BeadsTheme.colors
     var expanded by remember { mutableStateOf(initiallyExpanded) }
@@ -71,6 +78,11 @@ fun IssueCard(
 
             // Status indicator
             StatusBadge(issue.status.name)
+
+            // Dirty sync indicator (if issue not synced to git)
+            if (isDirty) {
+                DirtySyncBadge()
+            }
         }
 
         // Expanded details

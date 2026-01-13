@@ -22,15 +22,17 @@ class IssueRepositoryTest {
     @Test
     @DisplayName("should cache parsed issues on first load")
     fun testCacheParsedIssuesOnFirstLoad() {
-        val file = tempDir.resolve("issues.jsonl")
+        val beadsDir = tempDir.resolve(".beads")
+        beadsDir.toFile().mkdirs()
+        val file = beadsDir.resolve("issues.jsonl")
         file.writeText("""
             {"id":"TEST-001","title":"Issue","description":"Desc","status":"open","priority":1,"issue_type":"task","created_at":"2026-01-07T10:00:00Z","created_by":"user","updated_at":"2026-01-07T10:00:00Z"}
         """.trimIndent())
 
         // First load - cache miss
-        val result1 = repository.loadIssues(file)
+        val result1 = repository.loadIssues(beadsDir)
         assertTrue(result1.isSuccess)
-        assertEquals(1, result1.getOrNull()?.size)
+        assertEquals(1, result1.getOrNull()?.issues?.size)
 
         // Verify cached
         assertNotNull(repository.getCachedIssues())
@@ -40,18 +42,20 @@ class IssueRepositoryTest {
     @Test
     @DisplayName("should return cached issues on second load (cache hit)")
     fun testReturnCachedIssuesOnSecondLoad() {
-        val file = tempDir.resolve("issues.jsonl")
+        val beadsDir = tempDir.resolve(".beads")
+        beadsDir.toFile().mkdirs()
+        val file = beadsDir.resolve("issues.jsonl")
         file.writeText("""
             {"id":"TEST-001","title":"Issue","description":"Desc","status":"open","priority":1,"issue_type":"task","created_at":"2026-01-07T10:00:00Z","created_by":"user","updated_at":"2026-01-07T10:00:00Z"}
         """.trimIndent())
 
-        val result1 = repository.loadIssues(file)
+        val result1 = repository.loadIssues(beadsDir)
         assertTrue(result1.isSuccess)
 
         // Second load - cache hit (same content)
-        val result2 = repository.loadIssues(file)
+        val result2 = repository.loadIssues(beadsDir)
         assertTrue(result2.isSuccess)
-        assertEquals(1, result2.getOrNull()?.size)
+        assertEquals(1, result2.getOrNull()?.issues?.size)
 
         // Both should return the same data
         assertEquals(result1.getOrNull(), result2.getOrNull())
@@ -60,13 +64,15 @@ class IssueRepositoryTest {
     @Test
     @DisplayName("should invalidate cache when file content changes")
     fun testInvalidateCacheWhenFileContentChanges() {
-        val file = tempDir.resolve("issues.jsonl")
+        val beadsDir = tempDir.resolve(".beads")
+        beadsDir.toFile().mkdirs()
+        val file = beadsDir.resolve("issues.jsonl")
         file.writeText("""
             {"id":"TEST-001","title":"Issue","description":"Desc","status":"open","priority":1,"issue_type":"task","created_at":"2026-01-07T10:00:00Z","created_by":"user","updated_at":"2026-01-07T10:00:00Z"}
         """.trimIndent())
 
-        val result1 = repository.loadIssues(file)
-        assertEquals(1, result1.getOrNull()?.size)
+        val result1 = repository.loadIssues(beadsDir)
+        assertEquals(1, result1.getOrNull()?.issues?.size)
 
         // Modify file content
         file.writeText("""
@@ -75,19 +81,21 @@ class IssueRepositoryTest {
         """.trimIndent())
 
         // Re-load - cache should be invalidated and file re-parsed
-        val result2 = repository.loadIssues(file)
-        assertEquals(2, result2.getOrNull()?.size)
+        val result2 = repository.loadIssues(beadsDir)
+        assertEquals(2, result2.getOrNull()?.issues?.size)
     }
 
     @Test
     @DisplayName("invalidateCache() should clear cached data")
     fun testInvalidateCacheClearsCachedData() {
-        val file = tempDir.resolve("issues.jsonl")
+        val beadsDir = tempDir.resolve(".beads")
+        beadsDir.toFile().mkdirs()
+        val file = beadsDir.resolve("issues.jsonl")
         file.writeText("""
             {"id":"TEST-001","title":"Issue","description":"Desc","status":"open","priority":1,"issue_type":"task","created_at":"2026-01-07T10:00:00Z","created_by":"user","updated_at":"2026-01-07T10:00:00Z"}
         """.trimIndent())
 
-        repository.loadIssues(file)
+        repository.loadIssues(beadsDir)
         assertNotNull(repository.getCachedIssues())
 
         repository.invalidateCache()
@@ -97,14 +105,16 @@ class IssueRepositoryTest {
     @Test
     @DisplayName("isCached() should return true for cached file with same content")
     fun testIsCachedReturnsTrueForCachedFile() {
-        val file = tempDir.resolve("issues.jsonl")
+        val beadsDir = tempDir.resolve(".beads")
+        beadsDir.toFile().mkdirs()
+        val file = beadsDir.resolve("issues.jsonl")
         file.writeText("""
             {"id":"TEST-001","title":"Issue","description":"Desc","status":"open","priority":1,"issue_type":"task","created_at":"2026-01-07T10:00:00Z","created_by":"user","updated_at":"2026-01-07T10:00:00Z"}
         """.trimIndent())
 
         assertFalse(repository.isCached(file))
 
-        repository.loadIssues(file)
+        repository.loadIssues(beadsDir)
 
         assertTrue(repository.isCached(file))
     }
@@ -112,12 +122,14 @@ class IssueRepositoryTest {
     @Test
     @DisplayName("isCached() should return false after file content changes")
     fun testIsCachedReturnsFalseAfterFileChanges() {
-        val file = tempDir.resolve("issues.jsonl")
+        val beadsDir = tempDir.resolve(".beads")
+        beadsDir.toFile().mkdirs()
+        val file = beadsDir.resolve("issues.jsonl")
         file.writeText("""
             {"id":"TEST-001","title":"Issue","description":"Desc","status":"open","priority":1,"issue_type":"task","created_at":"2026-01-07T10:00:00Z","created_by":"user","updated_at":"2026-01-07T10:00:00Z"}
         """.trimIndent())
 
-        repository.loadIssues(file)
+        repository.loadIssues(beadsDir)
         assertTrue(repository.isCached(file))
 
         // Modify file
@@ -131,7 +143,9 @@ class IssueRepositoryTest {
     @Test
     @DisplayName("getCacheStats() should return correct statistics")
     fun testGetCacheStatsReturnsCorrectStats() {
-        val file = tempDir.resolve("issues.jsonl")
+        val beadsDir = tempDir.resolve(".beads")
+        beadsDir.toFile().mkdirs()
+        val file = beadsDir.resolve("issues.jsonl")
         file.writeText("""
             {"id":"TEST-001","title":"Issue","description":"Desc","status":"open","priority":1,"issue_type":"task","created_at":"2026-01-07T10:00:00Z","created_by":"user","updated_at":"2026-01-07T10:00:00Z"}
         """.trimIndent())
@@ -141,7 +155,7 @@ class IssueRepositoryTest {
         assertEquals(false, stats["cached"])
 
         // Load and check stats
-        repository.loadIssues(file)
+        repository.loadIssues(beadsDir)
         stats = repository.getCacheStats()
         assertEquals(true, stats["cached"])
         assertEquals(1, stats["issueCount"])
@@ -152,12 +166,14 @@ class IssueRepositoryTest {
     @Test
     @DisplayName("should handle parsing errors gracefully")
     fun testHandleParsingErrorsGracefully() {
-        val file = tempDir.resolve("issues.jsonl")
+        val beadsDir = tempDir.resolve(".beads")
+        beadsDir.toFile().mkdirs()
+        val file = beadsDir.resolve("issues.jsonl")
         file.writeText("""
             {invalid json}
         """.trimIndent())
 
-        val result = repository.loadIssues(file)
+        val result = repository.loadIssues(beadsDir)
         assertTrue(result.isFailure)
         assertTrue(result.exceptionOrNull() is ParseException.InvalidJson)
     }

@@ -14,6 +14,62 @@ Beads is a distributed, git-integrated issue tracking system that stores issues 
 - Visualize issue dependencies and relationships
 - Quick status and priority overview
 - Integration with IntelliJ's project structure
+- **Real-time updates**: Automatically reflects changes from `bd` CLI commands
+- **"Local" badges**: Visual indicators for issues with unsaved changes
+
+## How It Works
+
+### Data Loading Strategy
+
+The plugin uses a **SQLite-first loading strategy** with automatic fallback to ensure reliability:
+
+1. **Primary Source: SQLite Database** (`.beads/beads.db`)
+   - Fast querying and real-time updates
+   - Shows latest changes from `bd` CLI commands **before** they're synced to git
+   - Tracks "dirty" issues (modified but not yet exported to JSONL)
+
+2. **Fallback Source: JSONL File** (`.beads/issues.jsonl`)
+   - Used if SQLite database is unavailable, corrupted, or locked
+   - Guaranteed to work even if database has issues
+   - Represents the git-committed state of your issues
+
+### "Local" Badge Indicator
+
+Issues with unsaved changes display an amber **"Local"** badge, indicating:
+- The issue was modified via `bd` CLI commands
+- Changes are in the SQLite database but not yet exported to `issues.jsonl`
+- You haven't run `bd sync` yet to commit these changes to git
+
+This helps you track which issues have uncommitted modifications.
+
+### Real-Time File Watching
+
+The plugin watches for changes to:
+- `.beads/beads.db` - SQLite database (100ms debounce for fast updates)
+- `.beads/beads.db-wal` - Write-Ahead Log file (indicates database writes)
+- `.beads/issues.jsonl` - JSONL file (300ms debounce for manual edits)
+
+Changes are automatically reflected in the UI without manual refresh.
+
+### Edge Case Handling
+
+The plugin gracefully handles:
+- **Missing database**: Automatically falls back to JSONL
+- **Database locked** by another process: 5-second timeout, then fallback to JSONL
+- **Legacy databases**: Works with older databases missing optional tables
+- **Empty projects**: Shows friendly "No issues found" message
+- **Concurrent access**: Multiple processes can read the database simultaneously
+
+### Troubleshooting
+
+**Q: Why do some issues show a "Local" badge?**
+A: These issues have been modified via `bd` CLI but not yet synced to git. Run `bd sync` to export them to `issues.jsonl` and commit.
+
+**Q: Plugin shows "Failed to load issues" error**
+A: Check that your project has a `.beads/` directory with either `beads.db` or `issues.jsonl`. If both fail to load, check the IntelliJ logs for details.
+
+**Q: Changes from `bd` CLI don't appear immediately**
+A: The plugin watches for file changes with a short debounce (100-300ms). If issues persist, click the refresh button in the toolbar.
 
 ## Project Structure
 

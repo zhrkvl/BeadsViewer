@@ -47,6 +47,7 @@ fun KanbanView(project: Project) {
         }
         is IssueService.IssuesState.Loaded -> {
             val issues = state.issues
+            val dirtyIssueIds = state.dirtyIssueIds
 
             // Group issues by status
             val issuesByStatus = issues
@@ -72,6 +73,7 @@ fun KanbanView(project: Project) {
                         project = project,
                         status = status,
                         issues = issuesByStatus[status] ?: emptyList(),
+                        dirtyIssueIds = dirtyIssueIds,
                         modifier = Modifier.width(300.dp)
                     )
                 }
@@ -85,6 +87,7 @@ private fun KanbanColumn(
     project: Project,
     status: Status,
     issues: List<Issue>,
+    dirtyIssueIds: Set<String>,
     modifier: Modifier = Modifier
 ) {
     val tabService = remember { IssueDetailTabService.getInstance(project) }
@@ -127,7 +130,8 @@ private fun KanbanColumn(
                     initiallyExpanded = false,
                     onOpenDetailTab = { selectedIssue ->
                         tabService.openIssueDetailTab(selectedIssue)
-                    }
+                    },
+                    isDirty = dirtyIssueIds.contains(issue.id)
                 )
             }
         }

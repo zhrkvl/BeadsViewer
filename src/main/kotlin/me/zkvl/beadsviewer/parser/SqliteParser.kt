@@ -114,18 +114,23 @@ class SqliteParser(
      * Connection settings:
      * - Read-only mode: prevents accidental writes
      * - No auto-commit: improves read performance
-     * - Short timeout: fails fast if database is locked
+     * - Busy timeout: 5 seconds (handles concurrent access gracefully)
      *
      * @throws SQLException if connection fails
      */
     private fun openConnection(file: Path): Connection {
         try {
-            // JDBC URL with read-only mode
-            val url = "jdbc:sqlite:file:${file.toAbsolutePath()}?mode=ro"
+            // JDBC URL with read-only mode and busy timeout
+            // busy_timeout=5000 means wait up to 5 seconds if database is locked by another process
+            val url = "jdbc:sqlite:file:${file.toAbsolutePath()}?mode=ro&busy_timeout=5000"
             val connection = DriverManager.getConnection(url)
             connection.autoCommit = false  // Improves read performance
             return connection
         } catch (e: SQLException) {
+            // Check for common database locked errors
+            if (e.message?.contains("database is locked", ignoreCase = true) == true) {
+                logger.warn("Database is locked by another process after timeout: $file")
+            }
             throw ParseException.SqlError(file, "opening connection", e)
         }
     }

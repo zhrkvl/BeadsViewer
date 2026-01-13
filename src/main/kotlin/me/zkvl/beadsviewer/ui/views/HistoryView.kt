@@ -44,6 +44,7 @@ fun HistoryView(project: Project) {
         }
         is IssueService.IssuesState.Loaded -> {
             val issues = state.issues
+            val dirtyIssueIds = state.dirtyIssueIds
             val colors = BeadsTheme.colors
 
             // Sort by created date (most recent first)
@@ -76,7 +77,8 @@ fun HistoryView(project: Project) {
                                 expandable = true,
                                 onOpenDetailTab = { selectedIssue ->
                                     tabService.openIssueDetailTab(selectedIssue)
-                                }
+                                },
+                                isDirty = dirtyIssueIds.contains(issue.id)
                             )
                         }
                     }

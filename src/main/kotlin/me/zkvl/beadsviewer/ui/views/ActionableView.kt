@@ -44,6 +44,7 @@ fun ActionableView(project: Project) {
         }
         is IssueService.IssuesState.Loaded -> {
             val issues = state.issues
+            val dirtyIssueIds = state.dirtyIssueIds
 
             // Group by labels (tracks)
             val issuesByLabel = issues
@@ -68,13 +69,13 @@ fun ActionableView(project: Project) {
 
                 // Display each track/label group
                 issuesByLabel.forEach { (label, issuesInTrack) ->
-                    TrackSection(project, label, issuesInTrack)
+                    TrackSection(project, label, issuesInTrack, dirtyIssueIds)
                     Spacer(modifier = Modifier.height(16.dp))
                 }
 
                 // Unlabeled issues
                 if (unlabeled.isNotEmpty()) {
-                    TrackSection(project, "No Label", unlabeled)
+                    TrackSection(project, "No Label", unlabeled, dirtyIssueIds)
                 }
             }
         }
@@ -82,7 +83,7 @@ fun ActionableView(project: Project) {
 }
 
 @Composable
-private fun TrackSection(project: Project, label: String, issues: List<Issue>) {
+private fun TrackSection(project: Project, label: String, issues: List<Issue>, dirtyIssueIds: Set<String>) {
     val tabService = remember { IssueDetailTabService.getInstance(project) }
     val colors = BeadsTheme.colors
     Column(
@@ -118,7 +119,8 @@ private fun TrackSection(project: Project, label: String, issues: List<Issue>) {
                 onOpenDetailTab = { selectedIssue ->
                     tabService.openIssueDetailTab(selectedIssue)
                 },
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(bottom = 8.dp),
+                isDirty = dirtyIssueIds.contains(issue.id)
             )
         }
     }

@@ -47,6 +47,7 @@ fun SprintView(project: Project) {
         }
         is IssueService.IssuesState.Loaded -> {
             val issues = state.issues
+            val dirtyIssueIds = state.dirtyIssueIds
 
             // Filter to active issues (not closed)
             val sprintIssues = issues.filter { it.status != Status.CLOSED }
@@ -108,7 +109,8 @@ fun SprintView(project: Project) {
                             expandable = true,
                             onOpenDetailTab = { selectedIssue ->
                                 tabService.openIssueDetailTab(selectedIssue)
-                            }
+                            },
+                            isDirty = dirtyIssueIds.contains(issue.id)
                         )
                     }
                 }
