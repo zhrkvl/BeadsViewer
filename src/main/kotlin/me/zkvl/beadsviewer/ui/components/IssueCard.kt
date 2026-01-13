@@ -11,6 +11,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.zkvl.beadsviewer.model.Issue
+import me.zkvl.beadsviewer.ui.theme.BeadsTheme
 import org.jetbrains.jewel.ui.component.Text
 
 /**
@@ -24,6 +25,7 @@ fun IssueCard(
     expandable: Boolean = true,
     initiallyExpanded: Boolean = false
 ) {
+    val colors = BeadsTheme.colors
     var expanded by remember { mutableStateOf(initiallyExpanded) }
 
     Column(
@@ -34,7 +36,7 @@ fun IssueCard(
                 else Modifier
             )
             .background(
-                color = androidx.compose.ui.graphics.Color(0x08FFFFFF),
+                color = colors.surfaceHover,
                 shape = RoundedCornerShape(8.dp)
             )
             .padding(12.dp)
@@ -52,7 +54,7 @@ fun IssueCard(
             Text(
                 issue.id,
                 fontSize = 12.sp,
-                color = androidx.compose.ui.graphics.Color(0xFF888888)
+                color = colors.onSurfaceDisabled
             )
 
             // Title
@@ -60,6 +62,7 @@ fun IssueCard(
                 issue.title,
                 modifier = Modifier.weight(1f),
                 fontSize = 13.sp,
+                color = colors.onSurface,
                 maxLines = if (expanded) Int.MAX_VALUE else 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -79,12 +82,12 @@ fun IssueCard(
                 Text(
                     "Type: ${issue.issueType.value}",
                     fontSize = 11.sp,
-                    color = androidx.compose.ui.graphics.Color(0xFF888888)
+                    color = colors.onSurfaceDisabled
                 )
                 Text(
                     "By: ${issue.createdBy}",
                     fontSize = 11.sp,
-                    color = androidx.compose.ui.graphics.Color(0xFF888888)
+                    color = colors.onSurfaceDisabled
                 )
             }
 
@@ -94,7 +97,7 @@ fun IssueCard(
                 Text(
                     issue.description,
                     fontSize = 12.sp,
-                    color = androidx.compose.ui.graphics.Color(0xFFCCCCCC),
+                    color = colors.onSurfaceVariant,
                     maxLines = 5,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -106,7 +109,7 @@ fun IssueCard(
                 Text(
                     "Dependencies: ${issue.dependencies.size}",
                     fontSize = 11.sp,
-                    color = androidx.compose.ui.graphics.Color(0xFF888888)
+                    color = colors.onSurfaceDisabled
                 )
             }
         }

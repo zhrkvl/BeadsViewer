@@ -15,6 +15,7 @@ import com.intellij.openapi.project.Project
 import me.zkvl.beadsviewer.model.Issue
 import me.zkvl.beadsviewer.service.IssueService
 import me.zkvl.beadsviewer.ui.components.IssueCard
+import me.zkvl.beadsviewer.ui.theme.BeadsTheme
 import org.jetbrains.jewel.ui.component.Text
 
 /**
@@ -80,11 +81,12 @@ fun ActionableView(project: Project) {
 
 @Composable
 private fun TrackSection(label: String, issues: List<Issue>) {
+    val colors = BeadsTheme.colors
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                color = androidx.compose.ui.graphics.Color(0x08FFFFFF),
+                color = colors.surfaceHover,
                 shape = RoundedCornerShape(8.dp)
             )
             .padding(16.dp)
@@ -101,7 +103,7 @@ private fun TrackSection(label: String, issues: List<Issue>) {
             Text(
                 "${issues.size} issues",
                 fontSize = 12.sp,
-                color = androidx.compose.ui.graphics.Color(0xFF888888)
+                color = colors.onSurfaceDisabled
             )
         }
 

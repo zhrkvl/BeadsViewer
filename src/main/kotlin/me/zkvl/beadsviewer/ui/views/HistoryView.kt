@@ -13,6 +13,7 @@ import com.intellij.openapi.project.Project
 import me.zkvl.beadsviewer.model.Issue
 import me.zkvl.beadsviewer.service.IssueService
 import me.zkvl.beadsviewer.ui.components.IssueCard
+import me.zkvl.beadsviewer.ui.theme.BeadsTheme
 import org.jetbrains.jewel.ui.component.Text
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -41,6 +42,7 @@ fun HistoryView(project: Project) {
         }
         is IssueService.IssuesState.Loaded -> {
             val issues = state.issues
+            val colors = BeadsTheme.colors
 
             // Sort by created date (most recent first)
             val sortedIssues = issues.sortedByDescending { it.createdAt }
@@ -64,7 +66,7 @@ fun HistoryView(project: Project) {
                             Text(
                                 dateString,
                                 fontSize = 11.sp,
-                                color = androidx.compose.ui.graphics.Color(0xFF888888),
+                                color = colors.onSurfaceDisabled,
                                 modifier = Modifier.padding(bottom = 4.dp)
                             )
                             IssueCard(issue = issue, expandable = true)

@@ -8,16 +8,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import me.zkvl.beadsviewer.ui.theme.BeadsColors
+import me.zkvl.beadsviewer.ui.theme.BeadsTheme
 import org.jetbrains.jewel.ui.component.Text
 
 /**
  * Priority badge (P0-P4) with semantic coloring.
- * Displays issue priority with colors from BeadsColors.
+ * Displays issue priority with colors from BeadsTheme.
  */
 @Composable
 fun PriorityBadge(priority: Int, modifier: Modifier = Modifier) {
-    val priorityColor = BeadsColors.priorityColor(priority)
+    val colors = BeadsTheme.colors
+    val priorityColor = when (priority) {
+        0 -> colors.priorityP0
+        1 -> colors.priorityP1
+        2 -> colors.priorityP2
+        3 -> colors.priorityP3
+        else -> colors.priorityP4
+    }
 
     Box(
         modifier = modifier

@@ -18,6 +18,7 @@ import me.zkvl.beadsviewer.model.Issue
 import me.zkvl.beadsviewer.model.IssueType
 import me.zkvl.beadsviewer.service.IssueService
 import me.zkvl.beadsviewer.ui.theme.BeadsColors
+import me.zkvl.beadsviewer.ui.theme.BeadsTheme
 import org.jetbrains.jewel.ui.component.Text
 
 /**
@@ -60,6 +61,7 @@ private fun IssueListHeader(
     cacheStats: IssueService.CacheStatistics,
     onRefresh: () -> Unit
 ) {
+    val colors = BeadsTheme.colors
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -85,7 +87,7 @@ private fun IssueListHeader(
                 Text(
                     "Cached ${ageSeconds}s ago",
                     fontSize = 11.sp,
-                    color = androidx.compose.ui.graphics.Color(0xFF888888)
+                    color = colors.onSurfaceDisabled
                 )
             }
 
@@ -94,7 +96,7 @@ private fun IssueListHeader(
                 modifier = Modifier
                     .clickable { onRefresh() }
                     .background(
-                        color = androidx.compose.ui.graphics.Color(0x08FFFFFF),
+                        color = colors.surfaceHover,
                         shape = RoundedCornerShape(4.dp)
                     )
                     .padding(horizontal = 8.dp, vertical = 4.dp)
@@ -107,6 +109,7 @@ private fun IssueListHeader(
 
 @Composable
 private fun LoadingView() {
+    val colors = BeadsTheme.colors
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -119,7 +122,7 @@ private fun LoadingView() {
             Text(
                 "Parsing .beads/issues.jsonl",
                 fontSize = 11.sp,
-                color = androidx.compose.ui.graphics.Color(0xFF888888)
+                color = colors.onSurfaceDisabled
             )
         }
     }
@@ -127,6 +130,7 @@ private fun LoadingView() {
 
 @Composable
 private fun ErrorView(message: String) {
+    val colors = BeadsTheme.colors
     Box(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         contentAlignment = Alignment.Center
@@ -138,12 +142,12 @@ private fun ErrorView(message: String) {
             Text(
                 "Error loading issues",
                 fontSize = 14.sp,
-                color = androidx.compose.ui.graphics.Color(0xFFFF5555)
+                color = colors.error
             )
             Text(
                 message,
                 fontSize = 12.sp,
-                color = androidx.compose.ui.graphics.Color(0xFF888888)
+                color = colors.onSurfaceDisabled
             )
         }
     }
@@ -176,6 +180,7 @@ private fun IssueList(issues: List<Issue>) {
  */
 @Composable
 private fun IssueCard(issue: Issue) {
+    val colors = BeadsTheme.colors
     var expanded by remember { mutableStateOf(false) }
 
     Column(
@@ -183,7 +188,7 @@ private fun IssueCard(issue: Issue) {
             .fillMaxWidth()
             .clickable { expanded = !expanded }
             .background(
-                color = androidx.compose.ui.graphics.Color(0x08FFFFFF),
+                color = colors.surfaceHover,
                 shape = RoundedCornerShape(8.dp)
             )
             .padding(12.dp)
@@ -201,7 +206,7 @@ private fun IssueCard(issue: Issue) {
             Text(
                 issue.id,
                 fontSize = 12.sp,
-                color = androidx.compose.ui.graphics.Color(0xFF888888)
+                color = colors.onSurfaceDisabled
             )
 
             // Title
@@ -228,12 +233,12 @@ private fun IssueCard(issue: Issue) {
                 Text(
                     "Type: ${issue.issueType.value}",
                     fontSize = 11.sp,
-                    color = androidx.compose.ui.graphics.Color(0xFF888888)
+                    color = colors.onSurfaceDisabled
                 )
                 Text(
                     "By: ${issue.createdBy}",
                     fontSize = 11.sp,
-                    color = androidx.compose.ui.graphics.Color(0xFF888888)
+                    color = colors.onSurfaceDisabled
                 )
             }
 
@@ -243,7 +248,7 @@ private fun IssueCard(issue: Issue) {
                 Text(
                     issue.description,
                     fontSize = 12.sp,
-                    color = androidx.compose.ui.graphics.Color(0xFFCCCCCC),
+                    color = colors.onSurface,
                     maxLines = 5,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -255,7 +260,7 @@ private fun IssueCard(issue: Issue) {
                 Text(
                     "Dependencies: ${issue.dependencies.size}",
                     fontSize = 11.sp,
-                    color = androidx.compose.ui.graphics.Color(0xFF888888)
+                    color = colors.onSurfaceDisabled
                 )
             }
         }

@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.sp
 import com.intellij.openapi.project.Project
 import me.zkvl.beadsviewer.model.Issue
 import me.zkvl.beadsviewer.service.IssueService
+import me.zkvl.beadsviewer.ui.theme.BeadsTheme
 import org.jetbrains.jewel.ui.component.Text
 import kotlin.math.cos
 import kotlin.math.sin
@@ -73,11 +74,13 @@ fun GraphView(project: Project) {
 
 @Composable
 private fun DependencyGraphCanvas(issues: List<Issue>) {
+    val colors = BeadsTheme.colors
+
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
             .height(600.dp)
-            .background(Color(0x08FFFFFF))
+            .background(colors.surfaceHover)
     ) {
         val centerX = size.width / 2
         val centerY = size.height / 2
@@ -98,7 +101,7 @@ private fun DependencyGraphCanvas(issues: List<Issue>) {
                 val toPos = positions[dep.dependsOnId]
                 if (toPos != null) {
                     drawLine(
-                        color = Color(0xFF5C9FE5),
+                        color = colors.primary,
                         start = fromPos,
                         end = toPos,
                         strokeWidth = 2f,
@@ -111,7 +114,7 @@ private fun DependencyGraphCanvas(issues: List<Issue>) {
         // Draw nodes
         positions.values.forEach { pos ->
             drawCircle(
-                color = Color(0xFF5C9FE5),
+                color = colors.primary,
                 radius = 20f,
                 center = pos
             )

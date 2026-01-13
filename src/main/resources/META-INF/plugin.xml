@@ -18,6 +18,7 @@
         <toolWindow id="BeadsExplorer" factoryClass="me.zkvl.beadsviewer.BeadsToolWindowFactory"
                     icon="me.zkvl.beadsviewer.Icons.PluginIcon"/>
         <projectService serviceImplementation="me.zkvl.beadsviewer.state.ViewModeStateService"/>
+        <projectService serviceImplementation="me.zkvl.beadsviewer.state.ThemeStateService"/>
     </extensions>
 
     <projectListeners>

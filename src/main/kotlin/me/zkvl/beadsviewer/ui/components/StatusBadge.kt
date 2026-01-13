@@ -9,16 +9,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import me.zkvl.beadsviewer.ui.theme.BeadsColors
+import me.zkvl.beadsviewer.ui.theme.BeadsTheme
 import org.jetbrains.jewel.ui.component.Text
 
 /**
  * Status indicator badge with colored dot and text.
- * Displays issue status with semantic coloring from BeadsColors.
+ * Displays issue status with semantic coloring from BeadsTheme.
  */
 @Composable
 fun StatusBadge(status: String, modifier: Modifier = Modifier) {
-    val statusColor = BeadsColors.statusColor(status)
+    val colors = BeadsTheme.colors
+    val statusColor = when (status.lowercase()) {
+        "open" -> colors.statusOpen
+        "in_progress" -> colors.statusInProgress
+        "blocked" -> colors.statusBlocked
+        "closed" -> colors.statusClosed
+        "deferred" -> colors.statusDeferred
+        "hooked" -> colors.statusHooked
+        else -> colors.statusOpen
+    }
     val displayName = status.replace("_", " ").replaceFirstChar { it.uppercase() }
 
     Row(

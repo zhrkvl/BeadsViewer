@@ -18,6 +18,7 @@ import me.zkvl.beadsviewer.model.Issue
 import me.zkvl.beadsviewer.model.Status
 import me.zkvl.beadsviewer.service.IssueService
 import me.zkvl.beadsviewer.ui.components.IssueCard
+import me.zkvl.beadsviewer.ui.theme.BeadsTheme
 import org.jetbrains.jewel.ui.component.Text
 
 /**
@@ -82,11 +83,13 @@ private fun KanbanColumn(
     issues: List<Issue>,
     modifier: Modifier = Modifier
 ) {
+    val colors = BeadsTheme.colors
+
     Column(
         modifier = modifier
             .fillMaxHeight()
             .background(
-                color = androidx.compose.ui.graphics.Color(0x08FFFFFF),
+                color = colors.surfaceHover,
                 shape = RoundedCornerShape(8.dp)
             )
             .padding(12.dp)
@@ -105,7 +108,7 @@ private fun KanbanColumn(
             Text(
                 "${issues.size}",
                 fontSize = 12.sp,
-                color = androidx.compose.ui.graphics.Color(0xFF888888)
+                color = colors.onSurfaceDisabled
             )
         }
 

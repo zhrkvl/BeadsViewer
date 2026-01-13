@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import me.zkvl.beadsviewer.ui.theme.BeadsTheme
 import org.jetbrains.jewel.ui.component.Text
 
 /**
@@ -42,10 +43,7 @@ fun CompletionPopup(
 ) {
     if (suggestions.isEmpty()) return
 
-    // Colors matching ViewModeToolbar theme
-    val bgColor = Color(0xF02B2B2B)  // Solid dark gray background for readability
-    val borderColor = Color(0xFF3C3F41)  // Solid border for clear separation
-    val selectedColor = Color(0xFF5C9FE5).copy(alpha = 0.3f)  // Blue selection (matches buttons)
+    val colors = BeadsTheme.colors
 
     Popup(
         onDismissRequest = onDismiss,
@@ -56,12 +54,12 @@ fun CompletionPopup(
                 .width(400.dp)
                 .heightIn(max = 300.dp)
                 .background(
-                    color = bgColor,  // Matches ViewModeToolbar text field background
+                    color = colors.surface,
                     shape = RoundedCornerShape(4.dp)
                 )
                 .border(
                     width = 1.dp,
-                    color = borderColor,  // Matches ViewModeToolbar text field border
+                    color = colors.border,
                     shape = RoundedCornerShape(4.dp)
                 )
         ) {
@@ -70,8 +68,7 @@ fun CompletionPopup(
                     CompletionItem(
                         suggestion = suggestion,
                         isSelected = index == selectedIndex,
-                        onClick = { onSelect(suggestion) },
-                        selectedColor = selectedColor
+                        onClick = { onSelect(suggestion) }
                     )
                 }
             }
@@ -93,20 +90,15 @@ fun CompletionPopup(
 private fun CompletionItem(
     suggestion: CompletionSuggestion,
     isSelected: Boolean,
-    onClick: () -> Unit,
-    selectedColor: Color
+    onClick: () -> Unit
 ) {
-    // Text colors matching ViewModeToolbar
-    val primaryTextColor = Color(0xFFCCCCCC)  // Standard text (matches ViewModeToolbar)
-    val secondaryTextColor = Color(0xFFAAAAAA)  // Dimmer text
-    val typeTextColor = Color(0xFF888888)  // Type info (medium gray)
-    val tailTextColor = Color(0xFF666666)  // Tail text (darker gray)
+    val colors = BeadsTheme.colors
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                if (isSelected) selectedColor  // Blue selection highlight
+                if (isSelected) colors.primary.copy(alpha = 0.3f)
                 else Color.Transparent
             )
             .clickable(onClick = onClick)
@@ -116,7 +108,7 @@ private fun CompletionItem(
         Text(
             text = suggestion.displayText,
             fontSize = 12.sp,
-            color = if (suggestion.isBold) primaryTextColor else secondaryTextColor,
+            color = if (suggestion.isBold) colors.onSurface else colors.onSurfaceVariant,
             modifier = Modifier.weight(1f)
         )
 
@@ -125,7 +117,7 @@ private fun CompletionItem(
             Text(
                 text = typeText,
                 fontSize = 11.sp,
-                color = typeTextColor,
+                color = colors.onSurfaceDisabled,
                 modifier = Modifier.padding(start = 8.dp)
             )
         }
@@ -135,7 +127,7 @@ private fun CompletionItem(
             Text(
                 text = tailText,
                 fontSize = 11.sp,
-                color = tailTextColor,
+                color = colors.onSurfaceDisabled,
                 modifier = Modifier.padding(start = 4.dp)
             )
         }

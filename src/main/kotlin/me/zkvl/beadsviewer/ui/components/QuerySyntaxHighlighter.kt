@@ -9,6 +9,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import me.zkvl.beadsviewer.query.lexer.Lexer
 import me.zkvl.beadsviewer.query.lexer.Token
 import me.zkvl.beadsviewer.query.lexer.TokenType
+import me.zkvl.beadsviewer.ui.theme.BeadsColorScheme
 
 /**
  * Visual transformation that applies syntax highlighting to query text.
@@ -20,8 +21,10 @@ import me.zkvl.beadsviewer.query.lexer.TokenType
  * - Strings ("value"): Green
  * - Numbers (0, 1, 2): Blue
  * - Operators (:, ,, ..): Gray
+ *
+ * @param colorScheme The color scheme to use for syntax highlighting
  */
-class QuerySyntaxHighlighter : VisualTransformation {
+class QuerySyntaxHighlighter(private val colorScheme: BeadsColorScheme) : VisualTransformation {
     override fun filter(text: AnnotatedString): TransformedText {
         // Tokenize input using existing Lexer
         val lexer = Lexer(text.text)
@@ -43,29 +46,29 @@ class QuerySyntaxHighlighter : VisualTransformation {
                 // Keywords: orange/red
                 TokenType.AND, TokenType.OR, TokenType.NOT,
                 TokenType.SORT_BY, TokenType.ASC, TokenType.DESC ->
-                    SpanStyle(color = QueryColors.Keyword)
+                    SpanStyle(color = colorScheme.syntaxKeyword)
 
                 // Field names: purple
                 // Differentiate field names (before colon) from plain identifiers
                 TokenType.IDENTIFIER -> when {
-                    isFieldName(token, tokens) -> SpanStyle(color = QueryColors.Field)
-                    else -> SpanStyle(color = QueryColors.Value)
+                    isFieldName(token, tokens) -> SpanStyle(color = colorScheme.syntaxField)
+                    else -> SpanStyle(color = colorScheme.syntaxValue)
                 }
 
                 // Strings: green
-                TokenType.STRING -> SpanStyle(color = QueryColors.String)
+                TokenType.STRING -> SpanStyle(color = colorScheme.syntaxString)
 
                 // Numbers: blue
-                TokenType.NUMBER -> SpanStyle(color = QueryColors.Number)
+                TokenType.NUMBER -> SpanStyle(color = colorScheme.syntaxNumber)
 
                 // Operators: gray
                 TokenType.COLON, TokenType.COMMA, TokenType.DOT_DOT,
                 TokenType.LEFT_PAREN, TokenType.RIGHT_PAREN,
-                TokenType.STAR -> SpanStyle(color = QueryColors.Operator)
+                TokenType.STAR -> SpanStyle(color = colorScheme.syntaxOperator)
 
                 // Braces: gray (for {braced strings})
                 TokenType.LEFT_BRACE, TokenType.RIGHT_BRACE ->
-                    SpanStyle(color = QueryColors.Operator)
+                    SpanStyle(color = colorScheme.syntaxOperator)
 
                 else -> null
             }
@@ -89,18 +92,4 @@ class QuerySyntaxHighlighter : VisualTransformation {
         val nextToken = allTokens.getOrNull(currentIndex + 1)
         return nextToken?.type == TokenType.COLON
     }
-}
-
-/**
- * Color scheme for query syntax highlighting.
- * Colors chosen to match IntelliJ IDEA default (Darcula) theme.
- */
-object QueryColors {
-    val Keyword = Color(0xFFCC7832)      // Orange - keywords (and, or, not)
-    val Field = Color(0xFF9876AA)        // Purple - field names (status, priority)
-    val String = Color(0xFF6A8759)       // Green - quoted strings
-    val Number = Color(0xFF6897BB)       // Blue - numbers
-    val Value = Color(0xFFA9B7C6)        // Light gray - unquoted values
-    val Operator = Color(0xFFCCCCCC)     // Gray - operators (:, ,, ..)
-    val Error = Color(0xFFBC3F3C)        // Red - errors (for future use)
 }

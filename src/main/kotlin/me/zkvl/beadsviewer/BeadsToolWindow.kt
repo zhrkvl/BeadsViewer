@@ -8,9 +8,11 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import me.zkvl.beadsviewer.service.IssueService
+import me.zkvl.beadsviewer.state.ThemeStateService
 import me.zkvl.beadsviewer.state.ViewModeStateService
 import me.zkvl.beadsviewer.ui.ViewRouter
 import me.zkvl.beadsviewer.ui.components.ViewModeToolbar
+import me.zkvl.beadsviewer.ui.theme.BeadsTheme
 import me.zkvl.beadsviewer.ui.views.NoBeadsFoundView
 import org.jetbrains.jewel.bridge.addComposeTab
 
@@ -26,35 +28,42 @@ class BeadsToolWindowFactory : ToolWindowFactory {
 
 @Composable
 private fun BeadsViewerContent(project: Project) {
-    // Get issue service and observe its state
-    val issueService = remember { IssueService.getInstance(project) }
-    val issuesState by issueService.issuesState.collectAsState()
+    // Get theme service and observe theme mode
+    val themeService = remember { ThemeStateService.getInstance(project) }
+    val themeMode by themeService.themeModeFlow.collectAsState()
 
-    // Show no beads found view if there's an error
-    if (issuesState is IssueService.IssuesState.Error) {
-        NoBeadsFoundView()
-        return
-    }
+    // Wrap entire content with BeadsTheme
+    BeadsTheme(themeMode = themeMode) {
+        // Get issue service and observe its state
+        val issueService = remember { IssueService.getInstance(project) }
+        val issuesState by issueService.issuesState.collectAsState()
 
-    // Load persisted view mode
-    val stateService = remember { ViewModeStateService.getInstance(project) }
-    var currentViewMode by remember { mutableStateOf(stateService.getCurrentViewMode()) }
+        // Show no beads found view if there's an error
+        if (issuesState is IssueService.IssuesState.Error) {
+            NoBeadsFoundView()
+            return@BeadsTheme
+        }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        // Toolbar at the top
-        ViewModeToolbar(
-            project = project,
-            currentMode = currentViewMode,
-            onModeChange = { mode ->
-                currentViewMode = mode
-                stateService.setCurrentViewMode(mode)
-            }
-        )
+        // Load persisted view mode
+        val stateService = remember { ViewModeStateService.getInstance(project) }
+        var currentViewMode by remember { mutableStateOf(stateService.getCurrentViewMode()) }
 
-        // View content based on selected mode
-        ViewRouter(
-            project = project,
-            viewMode = currentViewMode
-        )
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Toolbar at the top
+            ViewModeToolbar(
+                project = project,
+                currentMode = currentViewMode,
+                onModeChange = { mode ->
+                    currentViewMode = mode
+                    stateService.setCurrentViewMode(mode)
+                }
+            )
+
+            // View content based on selected mode
+            ViewRouter(
+                project = project,
+                viewMode = currentViewMode
+            )
+        }
     }
 }

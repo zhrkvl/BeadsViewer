@@ -23,7 +23,10 @@ import com.intellij.openapi.project.Project
 import me.zkvl.beadsviewer.model.ViewMode
 import me.zkvl.beadsviewer.query.service.QueryFilterService
 import me.zkvl.beadsviewer.query.state.QueryStateService
+import me.zkvl.beadsviewer.state.ThemeStateService
 import me.zkvl.beadsviewer.state.ViewModeStateService
+import me.zkvl.beadsviewer.ui.theme.BeadsTheme
+import me.zkvl.beadsviewer.ui.theme.ThemeMode
 import org.jetbrains.jewel.ui.component.Text
 
 /**
@@ -62,14 +65,16 @@ fun ViewModeToolbar(
         }
     }
 
+    val colors = BeadsTheme.colors
+
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(androidx.compose.ui.graphics.Color(0x08FFFFFF))
+            .background(colors.surfaceHover)
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // View mode buttons
+        // View mode buttons and theme toggle
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -84,6 +89,9 @@ fun ViewModeToolbar(
                     }
                 )
             }
+
+            // Theme toggle button
+            ThemeToggleButton(project = project)
         }
 
         // Query input section
@@ -105,16 +113,18 @@ private fun ViewModeButton(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
+    val colors = BeadsTheme.colors
+
     val backgroundColor = if (isSelected) {
-        androidx.compose.ui.graphics.Color(0xFF5C9FE5).copy(alpha = 0.3f)
+        colors.primary.copy(alpha = 0.3f)
     } else {
-        androidx.compose.ui.graphics.Color(0x08FFFFFF)
+        colors.surfaceHover
     }
 
     val textColor = if (isSelected) {
-        androidx.compose.ui.graphics.Color(0xFF5C9FE5)
+        colors.primary
     } else {
-        androidx.compose.ui.graphics.Color(0xFFCCCCCC)
+        colors.onSurface
     }
 
     Box(
@@ -146,6 +156,8 @@ private fun QueryInputSection(
     queryStateService: QueryStateService,
     filteredState: QueryFilterService.FilteredIssuesState
 ) {
+    val colors = BeadsTheme.colors
+
     // Completion state
     var showCompletion by remember { mutableStateOf(false) }
     var completionSuggestions by remember { mutableStateOf<List<CompletionSuggestion>>(emptyList()) }
@@ -176,12 +188,12 @@ private fun QueryInputSection(
                 modifier = Modifier
                     .weight(1f)
                     .background(
-                        color = androidx.compose.ui.graphics.Color(0x10FFFFFF),
+                        color = colors.surfaceSelected,
                         shape = RoundedCornerShape(4.dp)
                     )
                     .border(
                         width = 1.dp,
-                        color = androidx.compose.ui.graphics.Color(0x20FFFFFF),
+                        color = colors.border,
                         shape = RoundedCornerShape(4.dp)
                     )
                     .padding(horizontal = 8.dp, vertical = 6.dp)
@@ -254,12 +266,12 @@ private fun QueryInputSection(
                                 else -> false  // Don't consume other keys
                             }
                         },
-                    visualTransformation = QuerySyntaxHighlighter(),
+                    visualTransformation = QuerySyntaxHighlighter(colors),
                     textStyle = TextStyle(
-                        color = androidx.compose.ui.graphics.Color(0xFFCCCCCC),
+                        color = colors.onSurface,
                         fontSize = 12.sp
                     ),
-                    cursorBrush = SolidColor(androidx.compose.ui.graphics.Color(0xFF5C9FE5)),
+                    cursorBrush = SolidColor(colors.primary),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
                         imeAction = ImeAction.Search
@@ -278,7 +290,7 @@ private fun QueryInputSection(
                             Text(
                                 "Enter query (e.g., status:open AND priority:0-1)",
                                 fontSize = 11.sp,
-                                color = androidx.compose.ui.graphics.Color(0x88CCCCCC)
+                                color = colors.onSurfaceDisabled
                             )
                         }
                         innerTextField()
@@ -330,9 +342,9 @@ private fun QueryInputSection(
                 modifier = Modifier
                     .background(
                         color = if (textFieldValue.text.isNotBlank()) {
-                            androidx.compose.ui.graphics.Color(0xFF5C9FE5).copy(alpha = 0.3f)
+                            colors.primary.copy(alpha = 0.3f)
                         } else {
-                            androidx.compose.ui.graphics.Color(0x08FFFFFF)
+                            colors.surfaceHover
                         },
                         shape = RoundedCornerShape(4.dp)
                     )
@@ -346,9 +358,9 @@ private fun QueryInputSection(
                     "Filter",
                     fontSize = 11.sp,
                     color = if (textFieldValue.text.isNotBlank()) {
-                        androidx.compose.ui.graphics.Color(0xFF5C9FE5)
+                        colors.primary
                     } else {
-                        androidx.compose.ui.graphics.Color(0x88CCCCCC)
+                        colors.onSurfaceDisabled
                     }
                 )
             }
@@ -359,7 +371,7 @@ private fun QueryInputSection(
                 Box(
                     modifier = Modifier
                         .background(
-                            color = androidx.compose.ui.graphics.Color(0x08FFFFFF),
+                            color = colors.surfaceHover,
                             shape = RoundedCornerShape(4.dp)
                         )
                         .clickable {
@@ -372,7 +384,7 @@ private fun QueryInputSection(
                     Text(
                         "Clear",
                         fontSize = 11.sp,
-                        color = androidx.compose.ui.graphics.Color(0xFFCCCCCC)
+                        color = colors.onSurface
                     )
                 }
             }
@@ -384,7 +396,7 @@ private fun QueryInputSection(
                 Text(
                     "Showing ${filteredState.issues.size} of ${filteredState.totalCount} issues",
                     fontSize = 10.sp,
-                    color = androidx.compose.ui.graphics.Color(0xFF5C9FE5),
+                    color = colors.info,
                     modifier = Modifier.padding(start = 4.dp)
                 )
             }
@@ -393,7 +405,7 @@ private fun QueryInputSection(
                 Text(
                     "Error: ${filteredState.message}",
                     fontSize = 10.sp,
-                    color = androidx.compose.ui.graphics.Color(0xFFFF5555),
+                    color = colors.error,
                     modifier = Modifier.padding(start = 4.dp)
                 )
             }
@@ -402,7 +414,7 @@ private fun QueryInputSection(
                 Text(
                     "Filtering...",
                     fontSize = 10.sp,
-                    color = androidx.compose.ui.graphics.Color(0xFFCCCCCC),
+                    color = colors.onSurfaceVariant,
                     modifier = Modifier.padding(start = 4.dp)
                 )
             }
@@ -410,6 +422,58 @@ private fun QueryInputSection(
             is QueryFilterService.FilteredIssuesState.NoFilter -> {
                 // No message when no filter active
             }
+        }
+    }
+}
+
+/**
+ * Theme toggle button that cycles through LIGHT -> DARK -> SYSTEM modes.
+ */
+@Composable
+private fun ThemeToggleButton(project: Project) {
+    val colors = BeadsTheme.colors
+    val themeService = remember { ThemeStateService.getInstance(project) }
+    val currentThemeMode by themeService.themeModeFlow.collectAsState()
+
+    val (icon, label) = when (currentThemeMode) {
+        ThemeMode.LIGHT -> "☀" to "Light"
+        ThemeMode.DARK -> "●" to "Dark"
+        ThemeMode.SYSTEM -> "◐" to "Auto"
+    }
+
+    Box(
+        modifier = Modifier
+            .widthIn(min = 60.dp)
+            .background(
+                color = colors.surfaceHover,
+                shape = RoundedCornerShape(4.dp)
+            )
+            .clickable {
+                // Cycle through theme modes
+                val nextMode = when (currentThemeMode) {
+                    ThemeMode.LIGHT -> ThemeMode.DARK
+                    ThemeMode.DARK -> ThemeMode.SYSTEM
+                    ThemeMode.SYSTEM -> ThemeMode.LIGHT
+                }
+                themeService.setCurrentThemeMode(nextMode)
+            }
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                icon,
+                fontSize = 11.sp,
+                color = colors.onSurface
+            )
+            Text(
+                label,
+                fontSize = 11.sp,
+                color = colors.onSurface
+            )
         }
     }
 }
