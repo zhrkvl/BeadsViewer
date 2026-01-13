@@ -20,10 +20,8 @@ fun ViewRouter(
         ViewMode.GRAPH -> GraphView(project)
         ViewMode.INSIGHTS -> InsightsView(project)
         ViewMode.ACTIONABLE -> ActionableView(project)
-        ViewMode.TREE -> TreeView(project)
         ViewMode.SPRINT -> SprintView(project)
         ViewMode.HISTORY -> HistoryView(project)
         ViewMode.ATTENTION -> AttentionView(project)
-        ViewMode.FLOW -> FlowView(project)
     }
 }

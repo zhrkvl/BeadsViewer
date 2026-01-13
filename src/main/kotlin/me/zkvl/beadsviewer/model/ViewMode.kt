@@ -33,11 +33,6 @@ enum class ViewMode(
         description = "Issues grouped by tracks and labels"
     ),
 
-    TREE(
-        displayName = "Tree",
-        description = "Hierarchical tree view with parent-child relationships"
-    ),
-
     SPRINT(
         displayName = "Sprint",
         description = "Sprint dashboard with burndown chart"
@@ -51,11 +46,6 @@ enum class ViewMode(
     ATTENTION(
         displayName = "Needs Attention",
         description = "Issues requiring immediate attention"
-    ),
-
-    FLOW(
-        displayName = "Flow",
-        description = "Cumulative flow diagram"
     );
 
     companion object {
