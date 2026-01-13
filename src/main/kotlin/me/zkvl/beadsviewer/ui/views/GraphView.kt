@@ -2,13 +2,19 @@ package me.zkvl.beadsviewer.ui.views
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.onPointerEvent
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.intellij.openapi.project.Project
@@ -100,8 +106,7 @@ fun GraphView(project: Project) {
                     DependencyGraphCanvas(
                         issues = issues,
                         graphState = graphState,
-                        onNodeSelected = { nodeId -> graphViewModel.selectNode(nodeId) },
-                        onNodeHovered = { nodeId -> graphViewModel.setHoveredNode(nodeId) }
+                        graphViewModel = graphViewModel
                     )
                 }
             }
@@ -170,14 +175,30 @@ class GraphViewModel {
     val graphState: StateFlow<GraphState> = _graphState.asStateFlow()
 
     /**
-     * Apply zoom transformation.
+     * Apply zoom transformation with pivot point.
      */
     fun applyZoom(delta: Float, pivot: Offset) {
         _graphState.update { state ->
             val newZoom = (state.zoom * delta).coerceIn(0.1f, 3.0f)
-            // TODO: Adjust pan offset to zoom around pivot point
-            state.copy(zoom = newZoom)
+
+            // Adjust pan offset to zoom around pivot point
+            // Formula: newPan = pivot + (oldPan - pivot) * (newZoom / oldZoom)
+            val zoomRatio = newZoom / state.zoom
+            val newPanOffset = Offset(
+                x = pivot.x + (state.panOffset.x - pivot.x) * zoomRatio,
+                y = pivot.y + (state.panOffset.y - pivot.y) * zoomRatio
+            )
+
+            state.copy(zoom = newZoom, panOffset = newPanOffset)
         }
+    }
+
+    /**
+     * Apply scroll wheel zoom.
+     */
+    fun applyScrollZoom(scrollDelta: Float, pivot: Offset) {
+        val zoomFactor = 1f + scrollDelta * 0.1f
+        applyZoom(zoomFactor, pivot)
     }
 
     /**
@@ -307,18 +328,44 @@ class GraphViewModel {
 /**
  * Canvas component that renders the dependency graph.
  */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun DependencyGraphCanvas(
     issues: List<Issue>,
     graphState: GraphState,
-    onNodeSelected: (String?) -> Unit,
-    onNodeHovered: (String?) -> Unit
+    graphViewModel: GraphViewModel
 ) {
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
             .height(600.dp)
             .background(Color(0x08FFFFFF))
+            // Zoom and pan gestures
+            .pointerInput(Unit) {
+                detectTransformGestures { centroid, pan, zoom, _ ->
+                    if (zoom != 1.0f) {
+                        graphViewModel.applyZoom(zoom, centroid)
+                    }
+                    if (pan != Offset.Zero) {
+                        graphViewModel.applyPan(pan)
+                    }
+                }
+            }
+            // Scroll wheel zoom
+            .onPointerEvent(PointerEventType.Scroll) {
+                val change = it.changes.first()
+                val scrollDelta = change.scrollDelta.y
+                if (scrollDelta != 0f) {
+                    graphViewModel.applyScrollZoom(-scrollDelta, change.position)
+                }
+            }
+            // Apply viewport transformations
+            .graphicsLayer(
+                scaleX = graphState.zoom,
+                scaleY = graphState.zoom,
+                translationX = graphState.panOffset.x,
+                translationY = graphState.panOffset.y
+            )
     ) {
         val positions = graphState.nodePositions
 
