@@ -7,6 +7,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -22,6 +23,8 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.jetbrains.jewel.ui.component.DefaultButton
+import org.jetbrains.jewel.ui.component.Dropdown
 import com.intellij.openapi.project.Project
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -101,7 +104,7 @@ fun GraphView(project: Project) {
                 Text(
                     "Dependency Graph (${issues.size} issues with dependencies)",
                     fontSize = 16.sp,
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    modifier = Modifier.padding(bottom = 8.dp)
                 )
 
                 if (issues.isEmpty()) {
@@ -109,6 +112,97 @@ fun GraphView(project: Project) {
                         Text("No issues with dependencies found")
                     }
                 } else {
+                    // Control panel
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Layout selector
+                        Text("Layout:", fontSize = 12.sp)
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            DefaultButton(
+                                onClick = { graphViewModel.setLayoutAlgorithm(LayoutAlgorithm.HIERARCHICAL) },
+                                modifier = Modifier.height(28.dp)
+                            ) {
+                                Text(
+                                    "Hierarchical",
+                                    fontSize = 11.sp,
+                                    color = if (graphState.layoutAlgorithm == LayoutAlgorithm.HIERARCHICAL) Color(0xFF3498DB) else Color.Unspecified
+                                )
+                            }
+                            DefaultButton(
+                                onClick = { graphViewModel.setLayoutAlgorithm(LayoutAlgorithm.FORCE_DIRECTED) },
+                                modifier = Modifier.height(28.dp)
+                            ) {
+                                Text(
+                                    "Force-Directed",
+                                    fontSize = 11.sp,
+                                    color = if (graphState.layoutAlgorithm == LayoutAlgorithm.FORCE_DIRECTED) Color(0xFF3498DB) else Color.Unspecified
+                                )
+                            }
+                            DefaultButton(
+                                onClick = { graphViewModel.setLayoutAlgorithm(LayoutAlgorithm.CIRCULAR) },
+                                modifier = Modifier.height(28.dp)
+                            ) {
+                                Text(
+                                    "Circular",
+                                    fontSize = 11.sp,
+                                    color = if (graphState.layoutAlgorithm == LayoutAlgorithm.CIRCULAR) Color(0xFF3498DB) else Color.Unspecified
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        // Visual options
+                        DefaultButton(
+                            onClick = { graphViewModel.toggleLabels() },
+                            modifier = Modifier.height(28.dp)
+                        ) {
+                            Text(
+                                if (graphState.showLabels) "Hide Labels" else "Show Labels",
+                                fontSize = 11.sp
+                            )
+                        }
+
+                        DefaultButton(
+                            onClick = {
+                                val nextStyle = when (graphState.edgeStyle) {
+                                    EdgeStyle.BY_TYPE -> EdgeStyle.BY_BLOCKING
+                                    EdgeStyle.BY_BLOCKING -> EdgeStyle.UNIFORM
+                                    EdgeStyle.UNIFORM -> EdgeStyle.BY_TYPE
+                                }
+                                graphViewModel.setEdgeStyle(nextStyle)
+                            },
+                            modifier = Modifier.height(28.dp)
+                        ) {
+                            Text(
+                                "Edges: ${graphState.edgeStyle.name.lowercase().replace('_', ' ')}",
+                                fontSize = 11.sp
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.weight(1f))
+
+                        // Reset view button
+                        DefaultButton(
+                            onClick = { graphViewModel.resetView() },
+                            modifier = Modifier.height(28.dp)
+                        ) {
+                            Text("Reset View", fontSize = 11.sp)
+                        }
+
+                        // Zoom indicator
+                        Text(
+                            "Zoom: ${(graphState.zoom * 100).toInt()}%",
+                            fontSize = 11.sp,
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
+
                     // Graph canvas
                     DependencyGraphCanvas(
                         issues = issues,
@@ -314,6 +408,60 @@ class GraphViewModel {
         _graphState.update { state ->
             state.copy(layoutAlgorithm = algorithm)
         }
+    }
+
+    /**
+     * Toggle label visibility.
+     */
+    fun toggleLabels() {
+        _graphState.update { state ->
+            state.copy(showLabels = !state.showLabels)
+        }
+    }
+
+    /**
+     * Set label mode.
+     */
+    fun setLabelMode(mode: LabelMode) {
+        _graphState.update { state ->
+            state.copy(labelMode = mode)
+        }
+    }
+
+    /**
+     * Set edge style.
+     */
+    fun setEdgeStyle(style: EdgeStyle) {
+        _graphState.update { state ->
+            state.copy(edgeStyle = style)
+        }
+    }
+
+    /**
+     * Reset view to default zoom and pan.
+     */
+    fun resetView() {
+        _graphState.update { state ->
+            state.copy(zoom = 1.0f, panOffset = Offset.Zero)
+        }
+    }
+
+    /**
+     * Compute visible nodes within viewport (for performance optimization).
+     */
+    fun computeVisibleNodes(canvasWidth: Float, canvasHeight: Float): Set<String> {
+        val state = _graphState.value
+        val margin = 100f // Include nodes slightly outside viewport
+
+        val viewportLeft = (-state.panOffset.x / state.zoom) - margin
+        val viewportTop = (-state.panOffset.y / state.zoom) - margin
+        val viewportRight = (canvasWidth - state.panOffset.x) / state.zoom + margin
+        val viewportBottom = (canvasHeight - state.panOffset.y) / state.zoom + margin
+
+        return state.nodePositions.filterValues { pos ->
+            pos.x >= viewportLeft && pos.x <= viewportRight &&
+            pos.y >= viewportTop && pos.y <= viewportBottom
+        }.keys.toSet()
     }
 
     /**
