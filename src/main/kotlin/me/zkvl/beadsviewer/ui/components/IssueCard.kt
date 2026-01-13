@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.zkvl.beadsviewer.model.Issue
 import me.zkvl.beadsviewer.ui.theme.BeadsTheme
+import org.jetbrains.jewel.ui.component.Link
 import org.jetbrains.jewel.ui.component.Text
 
 /**
@@ -23,7 +24,8 @@ fun IssueCard(
     issue: Issue,
     modifier: Modifier = Modifier,
     expandable: Boolean = true,
-    initiallyExpanded: Boolean = false
+    initiallyExpanded: Boolean = false,
+    onOpenDetailTab: ((Issue) -> Unit)? = null
 ) {
     val colors = BeadsTheme.colors
     var expanded by remember { mutableStateOf(initiallyExpanded) }
@@ -103,14 +105,26 @@ fun IssueCard(
                 )
             }
 
-            // Dependencies
+            // Dependencies with Open link
             if (issue.dependencies.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    "Dependencies: ${issue.dependencies.size}",
-                    fontSize = 11.sp,
-                    color = colors.onSurfaceDisabled
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Dependencies: ${issue.dependencies.size}",
+                        fontSize = 11.sp,
+                        color = colors.onSurfaceDisabled
+                    )
+                    if (onOpenDetailTab != null) {
+                        Text("•", fontSize = 11.sp, color = colors.onSurfaceDisabled)
+                        Link(
+                            text = "Open",
+                            onClick = { onOpenDetailTab(issue) }
+                        )
+                    }
+                }
             }
         }
     }

@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.sp
 import com.intellij.openapi.project.Project
 import me.zkvl.beadsviewer.model.Issue
 import me.zkvl.beadsviewer.model.Status
+import me.zkvl.beadsviewer.service.IssueDetailTabService
 import me.zkvl.beadsviewer.service.IssueService
 import me.zkvl.beadsviewer.ui.components.IssueCard
 import me.zkvl.beadsviewer.ui.theme.BeadsTheme
@@ -28,6 +29,7 @@ import org.jetbrains.jewel.ui.component.Text
 @Composable
 fun KanbanView(project: Project) {
     val issueService = remember { IssueService.getInstance(project) }
+    val tabService = remember { IssueDetailTabService.getInstance(project) }
     val issuesState by issueService.issuesState.collectAsState()
 
     when (val state = issuesState) {
@@ -67,6 +69,7 @@ fun KanbanView(project: Project) {
                     Status.CLOSED
                 ).forEach { status ->
                     KanbanColumn(
+                        project = project,
                         status = status,
                         issues = issuesByStatus[status] ?: emptyList(),
                         modifier = Modifier.width(300.dp)
@@ -79,12 +82,13 @@ fun KanbanView(project: Project) {
 
 @Composable
 private fun KanbanColumn(
+    project: Project,
     status: Status,
     issues: List<Issue>,
     modifier: Modifier = Modifier
 ) {
+    val tabService = remember { IssueDetailTabService.getInstance(project) }
     val colors = BeadsTheme.colors
-
     Column(
         modifier = modifier
             .fillMaxHeight()
@@ -120,7 +124,10 @@ private fun KanbanColumn(
                 IssueCard(
                     issue = issue,
                     expandable = true,
-                    initiallyExpanded = false
+                    initiallyExpanded = false,
+                    onOpenDetailTab = { selectedIssue ->
+                        tabService.openIssueDetailTab(selectedIssue)
+                    }
                 )
             }
         }

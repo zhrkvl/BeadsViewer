@@ -19,6 +19,8 @@
                     icon="me.zkvl.beadsviewer.Icons.PluginIcon"/>
         <projectService serviceImplementation="me.zkvl.beadsviewer.state.ViewModeStateService"/>
         <projectService serviceImplementation="me.zkvl.beadsviewer.state.ThemeStateService"/>
+        <projectService serviceImplementation="me.zkvl.beadsviewer.service.IssueDetailTabService"/>
+        <projectService serviceImplementation="me.zkvl.beadsviewer.service.BeadsCommandService"/>
     </extensions>
 
     <projectListeners>
