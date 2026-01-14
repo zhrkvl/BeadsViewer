@@ -1,13 +1,16 @@
 package me.zkvl.beadsviewer.ui.views
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.intellij.openapi.project.Project
@@ -164,23 +167,29 @@ private fun IssueHeaderSection(issue: Issue) {
     ) {
         PriorityBadge(issue.priority)
 
-        Text(
-            text = issue.id,
-            fontSize = 16.sp,
-            color = colors.onSurfaceDisabled
-        )
+        SelectionContainer {
+            Text(
+                text = issue.id,
+                fontSize = 16.sp,
+                color = colors.onSurfaceDisabled
+            )
+        }
 
-        Text(
-            text = "•",
-            fontSize = 16.sp,
-            color = colors.onSurfaceDisabled
-        )
+        SelectionContainer {
+            Text(
+                text = "•",
+                fontSize = 16.sp,
+                color = colors.onSurfaceDisabled
+            )
+        }
 
-        Text(
-            text = issue.issueType.value,
-            fontSize = 16.sp,
-            color = colors.onSurfaceDisabled
-        )
+        SelectionContainer {
+            Text(
+                text = issue.issueType.value,
+                fontSize = 16.sp,
+                color = colors.onSurfaceDisabled
+            )
+        }
 
         Spacer(Modifier.weight(1f))
 
@@ -299,17 +308,21 @@ private fun MetadataRow(label: String, value: String) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Text(
-            text = "$label:",
-            fontSize = 12.sp,
-            color = colors.onSurfaceDisabled,
-            modifier = Modifier.width(120.dp)
-        )
-        Text(
-            text = value,
-            fontSize = 12.sp,
-            color = colors.onSurface
-        )
+        SelectionContainer {
+            Text(
+                text = "$label:",
+                fontSize = 12.sp,
+                color = colors.onSurfaceDisabled,
+                modifier = Modifier.width(120.dp)
+            )
+        }
+        SelectionContainer {
+            Text(
+                text = value,
+                fontSize = 12.sp,
+                color = colors.onSurface
+            )
+        }
     }
 }
 
@@ -362,17 +375,21 @@ private fun DependenciesSection(issue: Issue) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = dependency.type.value,
-                        fontSize = 11.sp,
-                        color = colors.onSurfaceDisabled,
-                        modifier = Modifier.width(80.dp)
-                    )
-                    Text(
-                        text = dependency.dependsOnId,
-                        fontSize = 12.sp,
-                        color = colors.onSurface
-                    )
+                    SelectionContainer {
+                        Text(
+                            text = dependency.type.value,
+                            fontSize = 11.sp,
+                            color = colors.onSurfaceDisabled,
+                            modifier = Modifier.width(80.dp)
+                        )
+                    }
+                    SelectionContainer {
+                        Text(
+                            text = dependency.dependsOnId,
+                            fontSize = 12.sp,
+                            color = colors.onSurface
+                        )
+                    }
                 }
             }
         }
@@ -415,27 +432,35 @@ private fun CommentsSection(project: Project, issue: Issue) {
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        SelectionContainer {
+                            Text(
+                                text = comment.author,
+                                fontSize = 12.sp,
+                                color = colors.onSurfaceDisabled
+                            )
+                        }
+                        SelectionContainer {
+                            Text(
+                                text = "•",
+                                fontSize = 11.sp,
+                                color = colors.onSurfaceDisabled
+                            )
+                        }
+                        SelectionContainer {
+                            Text(
+                                text = comment.createdAt.toLocalDateTime(TimeZone.currentSystemDefault()).toString(),
+                                fontSize = 11.sp,
+                                color = colors.onSurfaceDisabled
+                            )
+                        }
+                    }
+                    SelectionContainer {
                         Text(
-                            text = comment.author,
+                            text = comment.text,
                             fontSize = 12.sp,
-                            color = colors.onSurfaceDisabled
-                        )
-                        Text(
-                            text = "•",
-                            fontSize = 11.sp,
-                            color = colors.onSurfaceDisabled
-                        )
-                        Text(
-                            text = comment.createdAt.toLocalDateTime(TimeZone.currentSystemDefault()).toString(),
-                            fontSize = 11.sp,
-                            color = colors.onSurfaceDisabled
+                            color = colors.onSurface
                         )
                     }
-                    Text(
-                        text = comment.text,
-                        fontSize = 12.sp,
-                        color = colors.onSurface
-                    )
                 }
             }
         }
@@ -517,17 +542,19 @@ private fun LabelsSection(issue: Issue) {
             modifier = Modifier.fillMaxWidth()
         ) {
             issue.labels.forEach { label ->
-                Text(
-                    text = label,
-                    fontSize = 11.sp,
-                    color = colors.onSurface,
-                    modifier = Modifier
-                        .background(
-                            color = colors.surfaceHover,
-                            shape = RoundedCornerShape(4.dp)
-                        )
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                )
+                SelectionContainer {
+                    Text(
+                        text = label,
+                        fontSize = 11.sp,
+                        color = colors.onSurface,
+                        modifier = Modifier
+                            .background(
+                                color = colors.surfaceHover,
+                                shape = RoundedCornerShape(4.dp)
+                            )
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
             }
         }
     }
@@ -597,14 +624,21 @@ private fun EditableMetadataRow(
                 }
             }
         } else {
-            Text(
-                text = value,
-                fontSize = 12.sp,
-                color = colors.onSurface,
+            Box(
                 modifier = Modifier
-                    .clickable { isEditing = true }
                     .weight(1f)
-            )
+                    .pointerInput(Unit) {
+                        detectTapGestures(onTap = { isEditing = true })
+                    }
+            ) {
+                SelectionContainer {
+                    Text(
+                        text = value,
+                        fontSize = 12.sp,
+                        color = colors.onSurface
+                    )
+                }
+            }
         }
     }
 }

@@ -2,11 +2,14 @@ package me.zkvl.beadsviewer.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -41,7 +44,9 @@ fun IssueCard(
         modifier = modifier
             .fillMaxWidth()
             .then(
-                if (expandable) Modifier.clickable { expanded = !expanded }
+                if (expandable) Modifier.pointerInput(Unit) {
+                    detectTapGestures(onTap = { expanded = !expanded })
+                }
                 else Modifier
             )
             .background(
@@ -50,7 +55,9 @@ fun IssueCard(
             )
             .padding(12.dp)
     ) {
-        // Title row with ID, priority, and status
+        SelectionContainer {
+            Column {
+                // Title row with ID, priority, and status
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -59,12 +66,19 @@ fun IssueCard(
             // Priority badge
             PriorityBadge(issue.priority)
 
-            // Issue ID
-            Text(
-                issue.id,
-                fontSize = 12.sp,
-                color = colors.onSurfaceDisabled
-            )
+            // Issue ID (clickable if callback provided)
+            if (onOpenDetailTab != null) {
+                Link(
+                    text = issue.id,
+                    onClick = { onOpenDetailTab(issue) }
+                )
+            } else {
+                Text(
+                    issue.id,
+                    fontSize = 12.sp,
+                    color = colors.onSurfaceDisabled
+                )
+            }
 
             // Title
             Text(
@@ -75,14 +89,6 @@ fun IssueCard(
                 maxLines = if (expanded) Int.MAX_VALUE else 1,
                 overflow = TextOverflow.Ellipsis
             )
-
-            // Open detail link (always visible if callback provided)
-            if (onOpenDetailTab != null) {
-                Link(
-                    text = "Open",
-                    onClick = { onOpenDetailTab(issue) }
-                )
-            }
 
             // Status indicator
             StatusBadge(issue.status.name)
@@ -125,26 +131,16 @@ fun IssueCard(
                 )
             }
 
-            // Dependencies with Open link
+            // Dependencies
             if (issue.dependencies.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(4.dp))
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "Dependencies: ${issue.dependencies.size}",
-                        fontSize = 11.sp,
-                        color = colors.onSurfaceDisabled
-                    )
-                    if (onOpenDetailTab != null) {
-                        Text("•", fontSize = 11.sp, color = colors.onSurfaceDisabled)
-                        Link(
-                            text = "Open",
-                            onClick = { onOpenDetailTab(issue) }
-                        )
-                    }
-                }
+                Text(
+                    "Dependencies: ${issue.dependencies.size}",
+                    fontSize = 11.sp,
+                    color = colors.onSurfaceDisabled
+                )
+            }
+        }
             }
         }
     }

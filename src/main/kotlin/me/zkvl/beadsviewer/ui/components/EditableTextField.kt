@@ -2,13 +2,16 @@ package me.zkvl.beadsviewer.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -150,18 +153,22 @@ fun EditableTextField(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { isEditing = true }
+                    .pointerInput(Unit) {
+                        detectTapGestures(onTap = { isEditing = true })
+                    }
                     .background(
                         Color(0x08FFFFFF),
                         RoundedCornerShape(8.dp)
                     )
                     .padding(12.dp)
             ) {
-                Text(
-                    text = if (value.isBlank()) "(Click to edit)" else value,
-                    fontSize = 13.sp,
-                    color = if (value.isBlank()) Color(0x88CCCCCC) else Color(0xFFCCCCCC)
-                )
+                SelectionContainer {
+                    Text(
+                        text = if (value.isBlank()) "(Click to edit)" else value,
+                        fontSize = 13.sp,
+                        color = if (value.isBlank()) Color(0x88CCCCCC) else Color(0xFFCCCCCC)
+                    )
+                }
             }
         }
     }

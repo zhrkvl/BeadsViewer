@@ -9,6 +9,7 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -660,11 +661,15 @@ private fun IssueInfoPanel(
 
         // ID
         Text("ID", fontSize = 11.sp, color = Color.Gray)
-        Text(issue.id, fontSize = 13.sp, modifier = Modifier.padding(bottom = 12.dp))
+        SelectionContainer {
+            Text(issue.id, fontSize = 13.sp, modifier = Modifier.padding(bottom = 12.dp))
+        }
 
         // Title
         Text("Title", fontSize = 11.sp, color = Color.Gray)
-        Text(issue.title, fontSize = 13.sp, modifier = Modifier.padding(bottom = 12.dp))
+        SelectionContainer {
+            Text(issue.title, fontSize = 13.sp, modifier = Modifier.padding(bottom = 12.dp))
+        }
 
         // Status
         Text("Status", fontSize = 11.sp, color = Color.Gray)
@@ -693,26 +698,34 @@ private fun IssueInfoPanel(
 
         // Priority
         Text("Priority", fontSize = 11.sp, color = Color.Gray)
-        Text("P${issue.priority}", fontSize = 13.sp, modifier = Modifier.padding(bottom = 12.dp))
+        SelectionContainer {
+            Text("P${issue.priority}", fontSize = 13.sp, modifier = Modifier.padding(bottom = 12.dp))
+        }
 
         // Type
         Text("Type", fontSize = 11.sp, color = Color.Gray)
-        Text(issue.issueType.value, fontSize = 13.sp, modifier = Modifier.padding(bottom = 12.dp))
+        SelectionContainer {
+            Text(issue.issueType.value, fontSize = 13.sp, modifier = Modifier.padding(bottom = 12.dp))
+        }
 
         // Description
         if (issue.description.isNotBlank()) {
             Text("Description", fontSize = 11.sp, color = Color.Gray)
-            Text(
-                issue.description,
-                fontSize = 12.sp,
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
+            SelectionContainer {
+                Text(
+                    issue.description,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+            }
         }
 
         // Assignee
         if (issue.assignee != null) {
             Text("Assignee", fontSize = 11.sp, color = Color.Gray)
-            Text(issue.assignee!!, fontSize = 13.sp, modifier = Modifier.padding(bottom = 12.dp))
+            SelectionContainer {
+                Text(issue.assignee!!, fontSize = 13.sp, modifier = Modifier.padding(bottom = 12.dp))
+            }
         }
 
         // Labels
@@ -728,7 +741,9 @@ private fun IssueInfoPanel(
                             .background(Color(0xFF34495E), shape = RoundedCornerShape(4.dp))
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
-                        Text(label, fontSize = 10.sp, color = Color.White)
+                        SelectionContainer {
+                            Text(label, fontSize = 10.sp, color = Color.White)
+                        }
                     }
                 }
             }
@@ -759,10 +774,12 @@ private fun IssueInfoPanel(
                                     shape = RoundedCornerShape(50)
                                 )
                         )
-                        Text(
-                            "${dep.type.value}: ${dep.dependsOnId}",
-                            fontSize = 11.sp
-                        )
+                        SelectionContainer {
+                            Text(
+                                "${dep.type.value}: ${dep.dependsOnId}",
+                                fontSize = 11.sp
+                            )
+                        }
                     }
                 }
             }
@@ -770,11 +787,13 @@ private fun IssueInfoPanel(
 
         // Created
         Text("Created", fontSize = 11.sp, color = Color.Gray)
-        Text(
-            issue.createdAt.toString().take(19).replace('T', ' '),
-            fontSize = 11.sp,
-            modifier = Modifier.padding(bottom = 12.dp)
-        )
+        SelectionContainer {
+            Text(
+                issue.createdAt.toString().take(19).replace('T', ' '),
+                fontSize = 11.sp,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+        }
     }
 }
 
