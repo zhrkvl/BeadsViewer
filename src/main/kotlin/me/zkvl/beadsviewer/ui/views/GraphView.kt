@@ -315,17 +315,23 @@ class GraphViewModel {
 
     /**
      * Apply zoom transformation with pivot point.
+     * The pivot is in screen coordinates - convert to graph coordinates first,
+     * then calculate pan offset to keep that graph point under the screen pivot.
      */
-    fun applyZoom(delta: Float, pivot: Offset) {
+    fun applyZoom(delta: Float, pivotScreen: Offset) {
         _graphState.update { state ->
             val newZoom = (state.zoom * delta).coerceIn(0.1f, 3.0f)
 
-            // Adjust pan offset to zoom around pivot point
-            // Formula: newPan = pivot + (oldPan - pivot) * (newZoom / oldZoom)
-            val zoomRatio = newZoom / state.zoom
+            // Convert pivot from screen coordinates to graph coordinates
+            val pivotGraph = Offset(
+                x = (pivotScreen.x - state.panOffset.x) / state.zoom,
+                y = (pivotScreen.y - state.panOffset.y) / state.zoom
+            )
+
+            // Calculate new pan offset to keep pivotGraph under pivotScreen
             val newPanOffset = Offset(
-                x = pivot.x + (state.panOffset.x - pivot.x) * zoomRatio,
-                y = pivot.y + (state.panOffset.y - pivot.y) * zoomRatio
+                x = pivotScreen.x - pivotGraph.x * newZoom,
+                y = pivotScreen.y - pivotGraph.y * newZoom
             )
 
             state.copy(zoom = newZoom, panOffset = newPanOffset)
@@ -411,11 +417,17 @@ class GraphViewModel {
 
     /**
      * Hit test to find node at given position.
+     * Uses dynamic radius based on issue's dependency count for accurate hit detection.
      * Returns node ID if a node is at the position, null otherwise.
      */
-    fun hitTestNode(position: Offset, nodeRadius: Float = 20f): String? {
+    fun hitTestNode(position: Offset, issues: List<Issue>): String? {
         val positions = _graphState.value.nodePositions
-        return positions.entries.firstOrNull { (_, nodePos) ->
+        // Create a map of issueId to issue for quick lookup
+        val issueMap = issues.associateBy { it.id }
+
+        return positions.entries.firstOrNull { (nodeId, nodePos) ->
+            val issue = issueMap[nodeId] ?: return@firstOrNull false
+            val nodeRadius = getNodeRadius(issue) // Use actual dynamic radius
             val distance = sqrt(
                 (position.x - nodePos.x).pow(2) +
                 (position.y - nodePos.y).pow(2)
@@ -852,39 +864,13 @@ private fun DependencyGraphCanvas(
                 else if (graphState.hoveredNodeId != null) PointerIcon.Hand
                 else PointerIcon.Default
             )
-            // Hover detection and click handling
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent()
-                        val position = event.changes.first().position
-
-                        // Transform position to graph coordinates
-                        val graphPosition = screenToGraph(position, graphState)
-
-                        when (event.type) {
-                            PointerEventType.Move -> {
-                                // Update hover state
-                                val hoveredNode = graphViewModel.hitTestNode(graphPosition)
-                                graphViewModel.setHoveredNode(hoveredNode)
-                            }
-                            PointerEventType.Press -> {
-                                // Handle node selection
-                                val clickedNode = graphViewModel.hitTestNode(graphPosition)
-                                graphViewModel.selectNode(clickedNode)
-                            }
-                            else -> {}
-                        }
-                    }
-                }
-            }
-            // Node dragging with priority over canvas pan
-            .pointerInput(Unit) {
+            // Node dragging with priority over canvas pan - must come BEFORE hover
+            .pointerInput("drag") {
                 detectDragGestures(
                     onDragStart = { offset ->
                         // Transform to graph coordinates
                         val graphPosition = screenToGraph(offset, graphState)
-                        val nodeId = graphViewModel.hitTestNode(graphPosition)
+                        val nodeId = graphViewModel.hitTestNode(graphPosition, issues)
                         if (nodeId != null) {
                             graphViewModel.startDragNode(nodeId, graphPosition)
                         }
@@ -909,8 +895,35 @@ private fun DependencyGraphCanvas(
                     }
                 )
             }
+            // Hover detection and click handling - observe events without consuming
+            .pointerInput("hover") {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        val position = event.changes.first().position
+
+                        // Transform position to graph coordinates
+                        val graphPosition = screenToGraph(position, graphState)
+
+                        when (event.type) {
+                            PointerEventType.Move -> {
+                                // Update hover state
+                                val hoveredNode = graphViewModel.hitTestNode(graphPosition, issues)
+                                graphViewModel.setHoveredNode(hoveredNode)
+                            }
+                            PointerEventType.Press -> {
+                                // Handle node selection
+                                val clickedNode = graphViewModel.hitTestNode(graphPosition, issues)
+                                graphViewModel.selectNode(clickedNode)
+                            }
+                            else -> {}
+                        }
+                        // Don't consume events - let drag gestures handle them
+                    }
+                }
+            }
             // Zoom gestures (pinch)
-            .pointerInput(Unit) {
+            .pointerInput("pinch") {
                 detectTransformGestures { centroid, pan, zoom, _ ->
                     if (zoom != 1.0f) {
                         graphViewModel.applyZoom(zoom, centroid)
