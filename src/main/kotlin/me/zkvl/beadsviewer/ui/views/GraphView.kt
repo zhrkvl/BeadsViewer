@@ -868,18 +868,21 @@ private fun DependencyGraphCanvas(
             .pointerInput("drag") {
                 detectDragGestures(
                     onDragStart = { offset ->
-                        // Transform to graph coordinates
-                        val graphPosition = screenToGraph(offset, graphState)
+                        // Transform to graph coordinates using CURRENT state (not captured)
+                        val currentState = graphViewModel.graphState.value
+                        val graphPosition = screenToGraph(offset, currentState)
                         val nodeId = graphViewModel.hitTestNode(graphPosition, issues)
                         if (nodeId != null) {
                             graphViewModel.startDragNode(nodeId, graphPosition)
                         }
                     },
                     onDrag = { change, dragAmount ->
-                        if (graphState.draggedNodeId != null) {
+                        // Read CURRENT state to avoid stale values after zoom/pan
+                        val currentState = graphViewModel.graphState.value
+                        if (currentState.draggedNodeId != null) {
                             // Dragging a node - update node position
-                            val scaledDrag = dragAmount / graphState.zoom
-                            val currentPos = graphState.nodePositions[graphState.draggedNodeId]
+                            val scaledDrag = dragAmount / currentState.zoom
+                            val currentPos = currentState.nodePositions[currentState.draggedNodeId]
                             if (currentPos != null) {
                                 graphViewModel.updateDragNode(currentPos + scaledDrag)
                             }
@@ -902,8 +905,9 @@ private fun DependencyGraphCanvas(
                         val event = awaitPointerEvent()
                         val position = event.changes.first().position
 
-                        // Transform position to graph coordinates
-                        val graphPosition = screenToGraph(position, graphState)
+                        // Transform position to graph coordinates using CURRENT state
+                        val currentState = graphViewModel.graphState.value
+                        val graphPosition = screenToGraph(position, currentState)
 
                         when (event.type) {
                             PointerEventType.Move -> {
