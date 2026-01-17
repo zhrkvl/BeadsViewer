@@ -95,6 +95,22 @@ class BeadsCommandService(private val project: Project) : Disposable {
     }
 
     /**
+     * Updates issue status using Status enum.
+     *
+     * @param issueId The issue ID to update
+     * @param status The new Status enum value
+     * @return Result containing the command output or error
+     */
+    suspend fun updateIssueStatus(
+        issueId: String,
+        status: me.zkvl.beadsviewer.model.Status
+    ): Result<String> {
+        // Convert Status enum to lowercase string for bd CLI
+        val statusString = status.name.lowercase()
+        return updateStatus(issueId, statusString)
+    }
+
+    /**
      * Updates issue priority.
      *
      * @param issueId The issue ID to update

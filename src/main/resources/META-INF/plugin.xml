@@ -22,6 +22,7 @@
         <projectService serviceImplementation="me.zkvl.beadsviewer.state.ThemeStateService"/>
         <projectService serviceImplementation="me.zkvl.beadsviewer.service.IssueDetailTabService"/>
         <projectService serviceImplementation="me.zkvl.beadsviewer.service.BeadsCommandService"/>
+        <notificationGroup id="Beads Notifications" displayType="BALLOON"/>
     </extensions>
 
     <projectListeners>
