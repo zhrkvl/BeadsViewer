@@ -165,11 +165,24 @@ class BeadsCommandService(private val project: Project) : Disposable {
             val basePath = project.basePath
                 ?: return Result.failure(IllegalStateException("Project path not found"))
 
-            // Execute command in project directory using login shell to load user environment
+            // Execute command in project directory with explicit PATH
             val processBuilder = ProcessBuilder()
                 .command("bash", "-l", "-c", command)
                 .directory(File(basePath))
                 .redirectErrorStream(true)
+
+            // Add common bin directories to PATH to ensure bd is accessible
+            val env = processBuilder.environment()
+            val userHome = System.getProperty("user.home")
+            val currentPath = env["PATH"] ?: ""
+            val additionalPaths = listOf(
+                "$userHome/.local/bin",
+                "/opt/homebrew/bin",
+                "/usr/local/bin"
+            )
+            val newPath = (additionalPaths + currentPath.split(":")).distinct().joinToString(":")
+            env["PATH"] = newPath
+            env["HOME"] = userHome
 
             val process = processBuilder.start()
             val output = process.inputStream.bufferedReader().readText()

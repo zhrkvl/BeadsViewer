@@ -52,7 +52,8 @@ fun IssueCard(
     expandable: Boolean = true,
     initiallyExpanded: Boolean = false,
     onOpenDetailTab: ((Issue) -> Unit)? = null,
-    isDirty: Boolean = false
+    isDirty: Boolean = false,
+    enableGestures: Boolean = true
 ) {
     val colors = BeadsTheme.colors
     val scope = rememberCoroutineScope()
@@ -68,26 +69,30 @@ fun IssueCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .pointerInput(Unit) {
-                    // Handle left-click for expand/collapse
-                    if (expandable) {
-                        detectTapGestures(onTap = { expanded = !expanded })
-                    }
-                }
-                .pointerInput(project) {
-                    // Handle right-click for context menu
-                    if (project != null) {
-                        awaitPointerEventScope {
-                            while (true) {
-                                val event = awaitPointerEvent()
-                                if (event.button == PointerButton.Secondary) {
-                                    showContextMenu = true
-                                    event.changes.forEach { it.consume() }
+                .then(
+                    if (enableGestures && expandable) {
+                        Modifier.pointerInput(Unit) {
+                            // Handle left-click for expand/collapse
+                            detectTapGestures(onTap = { expanded = !expanded })
+                        }
+                    } else Modifier
+                )
+                .then(
+                    if (enableGestures && project != null) {
+                        Modifier.pointerInput(project) {
+                            // Handle right-click for context menu
+                            awaitPointerEventScope {
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    if (event.button == PointerButton.Secondary) {
+                                        showContextMenu = true
+                                        event.changes.forEach { it.consume() }
+                                    }
                                 }
                             }
                         }
-                    }
-                }
+                    } else Modifier
+                )
                 .background(
                     color = colors.surfaceHover,
                     shape = RoundedCornerShape(8.dp)

@@ -254,12 +254,13 @@ private fun KanbanColumn(
                     IssueCard(
                         project = project,
                         issue = issue,
-                        expandable = false, // Disable expand to avoid conflicts with drag
+                        expandable = false,
                         initiallyExpanded = false,
                         onOpenDetailTab = { selectedIssue ->
                             tabService.openIssueDetailTab(selectedIssue)
                         },
-                        isDirty = dirtyIssueIds.contains(issue.id)
+                        isDirty = dirtyIssueIds.contains(issue.id),
+                        enableGestures = false // Disable gestures to allow outer drag detection
                     )
                 }
             }
