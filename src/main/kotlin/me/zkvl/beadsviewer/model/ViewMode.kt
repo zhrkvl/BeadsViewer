@@ -18,11 +18,6 @@ enum class ViewMode(
         description = "Board view with columns by status"
     ),
 
-    GRAPH(
-        displayName = "Dependency Graph",
-        description = "Visual graph of issue dependencies"
-    ),
-
     INSIGHTS(
         displayName = "Insights",
         description = "Metrics, analytics, and statistics dashboard"

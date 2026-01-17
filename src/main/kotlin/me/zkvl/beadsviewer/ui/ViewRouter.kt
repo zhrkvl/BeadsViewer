@@ -17,7 +17,6 @@ fun ViewRouter(
     when (viewMode) {
         ViewMode.LIST -> ListView(project)
         ViewMode.KANBAN -> KanbanView(project)
-        ViewMode.GRAPH -> GraphView(project)
         ViewMode.INSIGHTS -> InsightsView(project)
         ViewMode.ACTIONABLE -> ActionableView(project)
         ViewMode.SPRINT -> SprintView(project)
