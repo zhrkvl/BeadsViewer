@@ -209,53 +209,59 @@ private fun KanbanColumn(
             items(items = issues, key = { it.id }) { issue ->
                 var dragOffset by remember { mutableStateOf(Offset.Zero) }
 
-                IssueCard(
-                                project = project,
-                    issue = issue,
-                    expandable = true,
-                    initiallyExpanded = false,
-                    onOpenDetailTab = { selectedIssue ->
-                        tabService.openIssueDetailTab(selectedIssue)
-                    },
-                    isDirty = dirtyIssueIds.contains(issue.id),
-                    modifier = Modifier.pointerInput(Unit) {
-                        detectDragGesturesAfterLongPress(
-                            onDragStart = {
-                                onDragStart(issue)
-                            },
-                            onDrag = { change, offset ->
-                                change.consume()
-                                dragOffset += offset
+                // Wrap IssueCard in Box to apply drag gesture without conflicts
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .pointerInput(issue.id) {
+                            detectDragGesturesAfterLongPress(
+                                onDragStart = {
+                                    onDragStart(issue)
+                                },
+                                onDrag = { change, offset ->
+                                    change.consume()
+                                    dragOffset += offset
 
-                                // Check if dragging over this column
-                                columnBounds?.let { (position, size) ->
-                                    val dragX = change.position.x + dragOffset.x
-                                    val dragY = change.position.y + dragOffset.y
+                                    // Check if dragging over this column
+                                    columnBounds?.let { (position, size) ->
+                                        val dragX = change.position.x + dragOffset.x
+                                        val dragY = change.position.y + dragOffset.y
 
-                                    val isOver = dragX >= position.x &&
-                                            dragX <= position.x + size.width &&
-                                            dragY >= position.y &&
-                                            dragY <= position.y + size.height
+                                        val isOver = dragX >= position.x &&
+                                                dragX <= position.x + size.width &&
+                                                dragY >= position.y &&
+                                                dragY <= position.y + size.height
 
-                                    onHoverChange(isOver)
+                                        onHoverChange(isOver)
+                                    }
+                                },
+                                onDragEnd = {
+                                    dragOffset = Offset.Zero
+                                    onDragEnd()
+
+                                    // Drop on hovered column
+                                    if (hoveredColumn != null && hoveredColumn != issue.status) {
+                                        onDrop(issue, hoveredColumn)
+                                    }
+                                },
+                                onDragCancel = {
+                                    dragOffset = Offset.Zero
+                                    onDragEnd()
                                 }
-                            },
-                            onDragEnd = {
-                                dragOffset = Offset.Zero
-                                onDragEnd()
-
-                                // Drop on hovered column
-                                if (hoveredColumn != null && hoveredColumn != issue.status) {
-                                    onDrop(issue, hoveredColumn)
-                                }
-                            },
-                            onDragCancel = {
-                                dragOffset = Offset.Zero
-                                onDragEnd()
-                            }
-                        )
-                    }
-                )
+                            )
+                        }
+                ) {
+                    IssueCard(
+                        project = project,
+                        issue = issue,
+                        expandable = false, // Disable expand to avoid conflicts with drag
+                        initiallyExpanded = false,
+                        onOpenDetailTab = { selectedIssue ->
+                            tabService.openIssueDetailTab(selectedIssue)
+                        },
+                        isDirty = dirtyIssueIds.contains(issue.id)
+                    )
+                }
             }
         }
     }
