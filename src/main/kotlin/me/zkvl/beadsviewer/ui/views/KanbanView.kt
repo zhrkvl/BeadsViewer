@@ -210,6 +210,7 @@ private fun KanbanColumn(
                 var dragOffset by remember { mutableStateOf(Offset.Zero) }
 
                 IssueCard(
+                                project = project,
                     issue = issue,
                     expandable = true,
                     initiallyExpanded = false,

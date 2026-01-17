@@ -105,6 +105,7 @@ fun SprintView(project: Project) {
                 ) {
                     items(items = sprintIssues, key = { it.id }) { issue ->
                         IssueCard(
+                                project = project,
                             issue = issue,
                             expandable = true,
                             onOpenDetailTab = { selectedIssue ->

@@ -72,6 +72,7 @@ fun AttentionView(project: Project) {
                     ) {
                         items(items = attentionIssues, key = { it.id }) { issue ->
                             IssueCard(
+                                project = project,
                                 issue = issue,
                                 expandable = true,
                                 initiallyExpanded = true,

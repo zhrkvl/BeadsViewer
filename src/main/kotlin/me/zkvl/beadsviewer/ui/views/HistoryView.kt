@@ -73,6 +73,7 @@ fun HistoryView(project: Project) {
                                 modifier = Modifier.padding(bottom = 4.dp)
                             )
                             IssueCard(
+                                project = project,
                                 issue = issue,
                                 expandable = true,
                                 onOpenDetailTab = { selectedIssue ->

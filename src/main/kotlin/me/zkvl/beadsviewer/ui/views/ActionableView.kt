@@ -117,6 +117,7 @@ private fun TrackSection(project: Project, label: String, issues: List<Issue>, d
         // List issues in track
         issues.forEach { issue ->
             IssueCard(
+                                project = project,
                 issue = issue,
                 expandable = true,
                 onOpenDetailTab = { selectedIssue ->

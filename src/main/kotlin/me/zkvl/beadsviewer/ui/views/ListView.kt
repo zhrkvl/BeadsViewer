@@ -94,6 +94,7 @@ fun ListView(project: Project) {
                     ) {
                         items(items = issues, key = { it.id }) { issue ->
                             IssueCard(
+                                project = project,
                                 issue = issue,
                                 onOpenDetailTab = { selectedIssue ->
                                     tabService.openIssueDetailTab(selectedIssue)
