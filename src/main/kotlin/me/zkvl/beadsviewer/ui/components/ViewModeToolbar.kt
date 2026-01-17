@@ -38,7 +38,8 @@ fun ViewModeToolbar(
     project: Project,
     currentMode: ViewMode,
     onModeChange: (ViewMode) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    hideActionableView: Boolean = false
 ) {
     val queryFilterService = remember { QueryFilterService.getInstance(project) }
     val queryStateService = remember { QueryStateService.getInstance(project) }
@@ -79,7 +80,12 @@ fun ViewModeToolbar(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            ViewMode.entries.forEach { mode ->
+            // Filter out ACTIONABLE view if no labels exist in the repo
+            val availableModes = ViewMode.entries.filter { mode ->
+                !(mode == ViewMode.ACTIONABLE && hideActionableView)
+            }
+
+            availableModes.forEach { mode ->
                 ViewModeButton(
                     mode = mode,
                     isSelected = mode == currentMode,
@@ -94,16 +100,19 @@ fun ViewModeToolbar(
             ThemeToggleButton(project = project)
         }
 
-        // Query input section
-        QueryInputSection(
-            project = project,
-            currentMode = currentMode,
-            textFieldValue = textFieldValue,
-            onTextFieldValueChange = { textFieldValue = it },
-            queryFilterService = queryFilterService,
-            queryStateService = queryStateService,
-            filteredState = filteredState
-        )
+        // Query input section (only shown for views that support query filtering)
+        // Actionable and Attention views have hardcoded filters, so hide query input
+        if (currentMode != ViewMode.ACTIONABLE && currentMode != ViewMode.ATTENTION) {
+            QueryInputSection(
+                project = project,
+                currentMode = currentMode,
+                textFieldValue = textFieldValue,
+                onTextFieldValueChange = { textFieldValue = it },
+                queryFilterService = queryFilterService,
+                queryStateService = queryStateService,
+                filteredState = filteredState
+            )
+        }
     }
 }
 

@@ -159,6 +159,19 @@ class IssueService(private val project: Project) : Disposable {
     }
 
     /**
+     * Check if any issues in the repository have labels.
+     * Used to conditionally show/hide label-based views like Actionable.
+     *
+     * @return true if at least one issue has labels, false otherwise
+     */
+    fun hasLabels(): Boolean {
+        return when (val state = issuesState.value) {
+            is IssuesState.Loaded -> state.issues.any { it.labels.isNotEmpty() }
+            else -> false
+        }
+    }
+
+    /**
      * Called when file watcher detects changes to Beads files.
      * Uses configurable debounce to handle rapid changes.
      *

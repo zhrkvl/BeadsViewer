@@ -48,6 +48,17 @@ private fun BeadsViewerContent(project: Project) {
         val stateService = remember { ViewModeStateService.getInstance(project) }
         var currentViewMode by remember { mutableStateOf(stateService.getCurrentViewMode()) }
 
+        // Check if Actionable view should be shown (only if labels exist)
+        val hasLabels = remember(issuesState) { issueService.hasLabels() }
+
+        // If current view is ACTIONABLE but no labels exist, switch to LIST view
+        LaunchedEffect(hasLabels) {
+            if (!hasLabels && currentViewMode == me.zkvl.beadsviewer.model.ViewMode.ACTIONABLE) {
+                currentViewMode = me.zkvl.beadsviewer.model.ViewMode.LIST
+                stateService.setCurrentViewMode(me.zkvl.beadsviewer.model.ViewMode.LIST)
+            }
+        }
+
         Column(modifier = Modifier.fillMaxSize()) {
             // Toolbar at the top
             ViewModeToolbar(
@@ -56,7 +67,8 @@ private fun BeadsViewerContent(project: Project) {
                 onModeChange = { mode ->
                     currentViewMode = mode
                     stateService.setCurrentViewMode(mode)
-                }
+                },
+                hideActionableView = !hasLabels
             )
 
             // View content based on selected mode

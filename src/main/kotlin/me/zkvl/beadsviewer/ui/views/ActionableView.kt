@@ -46,13 +46,16 @@ fun ActionableView(project: Project) {
             val issues = state.issues
             val dirtyIssueIds = state.dirtyIssueIds
 
+            // Filter out closed issues - only show actionable work
+            val openIssues = issues.filter { !it.isClosed() }
+
             // Group by labels (tracks)
-            val issuesByLabel = issues
+            val issuesByLabel = openIssues
                 .filter { it.labels.isNotEmpty() }
                 .flatMap { issue -> issue.labels.map { label -> label to issue } }
                 .groupBy({ it.first }, { it.second })
 
-            val unlabeled = issues.filter { it.labels.isEmpty() }
+            val unlabeled = openIssues.filter { it.labels.isEmpty() }
 
             Column(
                 modifier = Modifier

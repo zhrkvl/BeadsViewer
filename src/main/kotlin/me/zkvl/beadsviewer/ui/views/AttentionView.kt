@@ -45,11 +45,13 @@ fun AttentionView(project: Project) {
             val issues = state.issues
             val dirtyIssueIds = state.dirtyIssueIds
 
-            // Filter issues needing attention
+            // Filter issues needing attention (only open/in-progress, not closed)
             val attentionIssues = issues.filter { issue ->
-                issue.status == Status.BLOCKED ||
-                (issue.priority <= 1 && issue.assignee == null) ||
-                issue.status == Status.OPEN && issue.priority == 0
+                !issue.isClosed() && (
+                    issue.status == Status.BLOCKED ||
+                    (issue.priority <= 1 && issue.assignee == null) ||
+                    issue.status == Status.OPEN && issue.priority == 0
+                )
             }.sortedBy { it.priority }
 
             Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
